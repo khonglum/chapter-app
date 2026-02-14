@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { auth } from '../firebase';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, addDoc } from 'firebase/firestore';
@@ -14,6 +16,12 @@ function CreateChapter() {
   const [tags, setTags] = useState('');
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+  if (!auth.currentUser) {
+    navigate('/login');
+  }
+}, [navigate]);
+
   const handlePublish = async () => {
     if (!title || !story || !country) {
       alert('Please fill in title, story, and country!');
@@ -28,7 +36,8 @@ function CreateChapter() {
         date: date || new Date().getFullYear().toString(),
         country,
         tags: tags.split(',').map(t => t.trim()).filter(t => t),
-        author: 'Your Name', // We'll add real auth later
+        author: auth.currentUser?.displayName || auth.currentUser?.email || 'Anonymous',
+        authorId: auth.currentUser?.uid,
         createdAt: new Date(),
         likes: 0,
         comments: []

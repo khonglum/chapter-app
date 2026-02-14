@@ -1,3 +1,5 @@
+import { signOut } from 'firebase/auth';
+import { auth } from '../firebase';
 import { useState } from 'react';
 import BottomNav from '../components/BottomNav';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -15,7 +17,15 @@ function Profile() {
         alignItems: 'center'
       }}>
         <h1 style={{ fontSize: '1.5em', margin: 0 }}>Profile</h1>
-        <SettingsIcon style={{ cursor: 'pointer', color: '#666' }} />
+        <SettingsIcon 
+  onClick={() => {
+    if (window.confirm('Log out?')) {
+      signOut(auth);
+      window.location.href = '/login';
+    }
+  }}
+  style={{ cursor: 'pointer', color: '#666' }} 
+/>
       </div>
 
       {/* Profile Header */}
