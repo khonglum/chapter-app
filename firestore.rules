@@ -1,0 +1,43 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Chapters collection
+    match /chapters/{chapterId} {
+
+      // Anyone can read public and anonymous chapters
+      // Private chapters only readable by the author
+      // Friends chapters only readable by the author (until friends system is built)
+      allow read: if resource.data.privacy == 'public'
+                  || resource.data.privacy == 'anonymous'
+                  || !('privacy' in resource.data)
+                  || (request.auth != null && resource.data.authorId == request.auth.uid);
+
+      // Only authenticated users can create chapters
+      // Author ID must match the authenticated user
+      allow create: if request.auth != null
+                    && request.resource.data.authorId == request.auth.uid
+                    && request.resource.data.privacy in ['private', 'public', 'anonymous', 'friends'];
+
+      // Only the author can update their own chapters
+      allow update: if request.auth != null
+                    && resource.data.authorId == request.auth.uid
+                    && request.resource.data.authorId == request.auth.uid;
+
+      // Only the author can delete their own chapters
+      allow delete: if request.auth != null
+                    && resource.data.authorId == request.auth.uid;
+
+      // Likes subcollection - tracks who liked a chapter
+      match /likes/{likeId} {
+        // Anyone can read likes
+        allow read: if true;
+        // Authenticated users can like (likeId must be their uid)
+        allow create: if request.auth != null && likeId == request.auth.uid;
+        // Users can only remove their own like
+        allow delete: if request.auth != null && likeId == request.auth.uid;
+      }
+    }
+  }
+}

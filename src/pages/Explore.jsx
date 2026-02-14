@@ -2,10 +2,26 @@ import { useState, useEffect } from 'react';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 import BottomNav from '../components/BottomNav';
+import ChapterModal from '../components/ChapterModal';
 
 function Explore() {
   const [chapters, setChapters] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedChapter, setSelectedChapter] = useState(null);
+  const [selectedDecade, setSelectedDecade] = useState(null);
+
+  const decades = ['2020s', '2010s', '2000s', '1990s', '1980s', '1970s', '1960s', '1950s'];
+
+  const worldEvents = {
+    '2020s': 'COVID-19 Pandemic',
+    '2010s': 'Social Media Revolution',
+    '2000s': 'Rise of the Internet',
+    '1990s': 'Fall of the Berlin Wall',
+    '1980s': 'End of the Cold War',
+    '1970s': 'Moon Landing Era',
+    '1960s': 'Civil Rights Movement',
+    '1950s': 'Post-War Boom',
+  };
 
   useEffect(() => {
     const fetchChapters = async () => {
@@ -29,6 +45,18 @@ function Explore() {
 
     fetchChapters();
   }, []);
+
+  // Filter chapters by selected decade
+  const getDecadeStart = (label) => parseInt(label);
+  const filteredChapters = selectedDecade
+    ? chapters.filter(ch => {
+        const year = parseInt(ch.date);
+        const start = getDecadeStart(selectedDecade);
+        return year >= start && year <= start + 9;
+      })
+    : chapters;
+
+  const activeEvent = selectedDecade ? worldEvents[selectedDecade] : worldEvents['2020s'];
 
   return (
     <div style={{ paddingBottom: '80px' }}>
@@ -61,14 +89,30 @@ function Explore() {
           top: '80px',
           height: 'fit-content'
         }}>
-          {['2020s', '2010s', '2000s', '1990s', '1980s', '1970s', '1960s', '1950s'].map(decade => (
-            <div key={decade} style={{
+          <div
+            onClick={() => setSelectedDecade(null)}
+            style={{
               margin: '15px 0',
               fontSize: '12px',
               fontWeight: '600',
-              color: decade === '2020s' ? '#1a8917' : '#666',
+              color: selectedDecade === null ? '#1a8917' : '#666',
               cursor: 'pointer'
-            }}>
+            }}
+          >
+            All
+          </div>
+          {decades.map(decade => (
+            <div
+              key={decade}
+              onClick={() => setSelectedDecade(decade)}
+              style={{
+                margin: '15px 0',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: selectedDecade === decade ? '#1a8917' : '#666',
+                cursor: 'pointer'
+              }}
+            >
               {decade}
             </div>
           ))}
@@ -89,7 +133,7 @@ function Explore() {
             marginBottom: '15px'
           }}>
             <div style={{ width: '12px', height: '12px', background: '#191919', borderRadius: '50%' }}></div>
-            COVID-19 Pandemic
+            {activeEvent}
           </div>
 
           {/* Loading */}
@@ -99,24 +143,31 @@ function Explore() {
             </div>
           )}
 
-          {/* Real Chapter Cards from Firebase */}
-          {!loading && chapters.length === 0 && (
+          {/* Empty state */}
+          {!loading && filteredChapters.length === 0 && (
             <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-              No chapters yet. Be the first to share your story!
+              {selectedDecade
+                ? `No chapters from the ${selectedDecade} yet. Be the first!`
+                : 'No chapters yet. Be the first to share your story!'}
             </div>
           )}
 
-          {!loading && chapters.map((chapter) => {
+          {/* Chapter Cards */}
+          {!loading && filteredChapters.map((chapter) => {
             const isAnonymous = chapter.privacy === 'anonymous';
             return (
-              <div key={chapter.id} style={{
-                background: '#fafafa',
-                borderRadius: '8px',
-                padding: '15px',
-                marginBottom: '15px',
-                borderLeft: '3px solid #191919',
-                cursor: 'pointer'
-              }}>
+              <div
+                key={chapter.id}
+                onClick={() => setSelectedChapter(chapter)}
+                style={{
+                  background: '#fafafa',
+                  borderRadius: '8px',
+                  padding: '15px',
+                  marginBottom: '15px',
+                  borderLeft: '3px solid #191919',
+                  cursor: 'pointer'
+                }}
+              >
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px' }}>
                   <div style={{
                     width: '32px',
@@ -135,7 +186,7 @@ function Explore() {
                     <div style={{ fontWeight: '600', color: '#000' }}>
                       {isAnonymous ? 'Anonymous' : chapter.author}
                     </div>
-                    <div>{chapter.date} • {chapter.country}</div>
+                    <div>{chapter.date} · {chapter.country}</div>
                   </div>
                 </div>
                 <div style={{ fontWeight: '600', fontSize: '14px', marginBottom: '8px' }}>{chapter.title}</div>
@@ -152,6 +203,14 @@ function Explore() {
           })}
         </div>
       </div>
+
+      {/* Chapter Detail Modal */}
+      {selectedChapter && (
+        <ChapterModal
+          chapter={selectedChapter}
+          onClose={() => setSelectedChapter(null)}
+        />
+      )}
 
       <BottomNav />
     </div>

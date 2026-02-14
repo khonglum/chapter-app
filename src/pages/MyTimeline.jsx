@@ -4,6 +4,7 @@ import { collection, getDocs, query, orderBy, where } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import BottomNav from '../components/BottomNav';
+import ChapterModal from '../components/ChapterModal';
 import AddIcon from '@mui/icons-material/Add';
 import LockIcon from '@mui/icons-material/Lock';
 import PublicIcon from '@mui/icons-material/Public';
@@ -17,7 +18,6 @@ const privacyBadge = (privacy) => {
     anonymous: { icon: <VisibilityOffIcon style={{ fontSize: 12 }} />, label: 'Anonymous', bg: '#fff3e0', color: '#e65100' },
     friends: { icon: <GroupIcon style={{ fontSize: 12 }} />, label: 'Friends', bg: '#e3f2fd', color: '#1565c0' },
   };
-  // Legacy chapters without privacy field
   if (!privacy) return { icon: <PublicIcon style={{ fontSize: 12 }} />, label: 'Public', bg: '#e8f5e9', color: '#2e7d32' };
   return config[privacy] || config.public;
 };
@@ -27,6 +27,7 @@ function MyTimeline() {
   const [chapters, setChapters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(auth.currentUser);
+  const [selectedChapter, setSelectedChapter] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -38,7 +39,6 @@ function MyTimeline() {
       fetchChapters(currentUser.uid);
     });
 
-    // If user is already available, fetch immediately
     if (auth.currentUser) {
       fetchChapters(auth.currentUser.uid);
     }
@@ -74,9 +74,31 @@ function MyTimeline() {
         borderBottom: '1px solid #e0e0e0',
         position: 'sticky',
         top: 0,
-        zIndex: 10
+        zIndex: 10,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
       }}>
         <h1 style={{ fontSize: '1.5em', margin: 0 }}>My Timeline</h1>
+        <button
+          onClick={() => navigate('/create')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            padding: '8px 16px',
+            background: '#1a8917',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '13px',
+            fontWeight: '600',
+            cursor: 'pointer'
+          }}
+        >
+          <AddIcon style={{ fontSize: 18 }} />
+          New
+        </button>
       </div>
 
       {loading && (
@@ -91,13 +113,18 @@ function MyTimeline() {
           {chapters.map((chapter) => {
             const badge = privacyBadge(chapter.privacy);
             return (
-              <div key={chapter.id} style={{
-                background: '#fafafa',
-                borderRadius: '8px',
-                padding: '15px',
-                marginBottom: '15px',
-                borderLeft: '3px solid #191919'
-              }}>
+              <div
+                key={chapter.id}
+                onClick={() => setSelectedChapter(chapter)}
+                style={{
+                  background: '#fafafa',
+                  borderRadius: '8px',
+                  padding: '15px',
+                  marginBottom: '15px',
+                  borderLeft: '3px solid #191919',
+                  cursor: 'pointer'
+                }}
+              >
                 {/* Privacy badge */}
                 <div style={{
                   display: 'inline-flex',
@@ -120,7 +147,7 @@ function MyTimeline() {
                   {chapter.story.substring(0, 150)}...
                 </div>
                 <div style={{ fontSize: '12px', color: '#666' }}>
-                  {chapter.date} • {chapter.country}
+                  {chapter.date} · {chapter.country}
                 </div>
               </div>
             );
@@ -176,6 +203,14 @@ function MyTimeline() {
             Write Your First Chapter
           </button>
         </div>
+      )}
+
+      {/* Chapter Detail Modal */}
+      {selectedChapter && (
+        <ChapterModal
+          chapter={selectedChapter}
+          onClose={() => setSelectedChapter(null)}
+        />
       )}
 
       <BottomNav />
