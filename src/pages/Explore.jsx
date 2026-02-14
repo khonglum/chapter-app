@@ -16,7 +16,11 @@ function Explore() {
           id: doc.id,
           ...doc.data()
         }));
-        setChapters(chaptersData);
+        // Only show public, anonymous, or legacy chapters (no privacy field)
+        const visible = chaptersData.filter(ch =>
+          !ch.privacy || ch.privacy === 'public' || ch.privacy === 'anonymous'
+        );
+        setChapters(visible);
       } catch (error) {
         console.error('Error fetching chapters:', error);
       }
@@ -30,8 +34,8 @@ function Explore() {
     <div style={{ paddingBottom: '80px' }}>
       {/* Search Bar */}
       <div style={{ padding: '20px', position: 'sticky', top: 0, background: 'white', zIndex: 10 }}>
-        <input 
-          type="text" 
+        <input
+          type="text"
           placeholder="Search chapters, users, tags, countries..."
           style={{
             width: '100%',
@@ -47,9 +51,9 @@ function Explore() {
       {/* Decade Sidebar + Timeline */}
       <div style={{ display: 'flex', padding: '0 20px' }}>
         {/* Decade Sidebar */}
-        <div style={{ 
-          width: '80px', 
-          background: '#f9f9f9', 
+        <div style={{
+          width: '80px',
+          background: '#f9f9f9',
           borderRadius: '8px',
           padding: '15px 10px',
           marginRight: '20px',
@@ -102,33 +106,50 @@ function Explore() {
             </div>
           )}
 
-          {!loading && chapters.map((chapter) => (
-            <div key={chapter.id} style={{
-              background: '#fafafa',
-              borderRadius: '8px',
-              padding: '15px',
-              marginBottom: '15px',
-              borderLeft: '3px solid #191919',
-              cursor: 'pointer'
-            }}>
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px' }}>
-                <div style={{ width: '32px', height: '32px', background: '#ddd', borderRadius: '50%' }}></div>
-                <div style={{ flex: 1, fontSize: '12px', color: '#666' }}>
-                  <div style={{ fontWeight: '600', color: '#000' }}>{chapter.author}</div>
-                  <div>{chapter.date} • {chapter.country}</div>
+          {!loading && chapters.map((chapter) => {
+            const isAnonymous = chapter.privacy === 'anonymous';
+            return (
+              <div key={chapter.id} style={{
+                background: '#fafafa',
+                borderRadius: '8px',
+                padding: '15px',
+                marginBottom: '15px',
+                borderLeft: '3px solid #191919',
+                cursor: 'pointer'
+              }}>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px' }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    background: isAnonymous ? '#bbb' : '#ddd',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '14px',
+                    color: '#fff'
+                  }}>
+                    {isAnonymous ? '?' : ''}
+                  </div>
+                  <div style={{ flex: 1, fontSize: '12px', color: '#666' }}>
+                    <div style={{ fontWeight: '600', color: '#000' }}>
+                      {isAnonymous ? 'Anonymous' : chapter.author}
+                    </div>
+                    <div>{chapter.date} • {chapter.country}</div>
+                  </div>
                 </div>
-              </div>
-              <div style={{ fontWeight: '600', fontSize: '14px', marginBottom: '8px' }}>{chapter.title}</div>
-              <div style={{ fontSize: '13px', color: '#555', fontFamily: 'Georgia, serif', lineHeight: '1.5' }}>
-                {chapter.story.substring(0, 100)}...
-              </div>
-              {chapter.tags && chapter.tags.length > 0 && (
-                <div style={{ marginTop: '10px', fontSize: '11px', color: '#999' }}>
-                  Tags: {chapter.tags.join(', ')}
+                <div style={{ fontWeight: '600', fontSize: '14px', marginBottom: '8px' }}>{chapter.title}</div>
+                <div style={{ fontSize: '13px', color: '#555', fontFamily: 'Georgia, serif', lineHeight: '1.5' }}>
+                  {chapter.story.substring(0, 100)}...
                 </div>
-              )}
-            </div>
-          ))}
+                {chapter.tags && chapter.tags.length > 0 && (
+                  <div style={{ marginTop: '10px', fontSize: '11px', color: '#999' }}>
+                    Tags: {chapter.tags.join(', ')}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 

@@ -6,6 +6,17 @@ import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import CloseIcon from '@mui/icons-material/Close';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
+import LockIcon from '@mui/icons-material/Lock';
+import PublicIcon from '@mui/icons-material/Public';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import GroupIcon from '@mui/icons-material/Group';
+
+const privacyOptions = [
+  { value: 'private', label: 'Private', icon: <LockIcon style={{ fontSize: 16 }} />, desc: 'Only you can see this chapter' },
+  { value: 'public', label: 'Public', icon: <PublicIcon style={{ fontSize: 16 }} />, desc: 'Anyone can read this chapter' },
+  { value: 'anonymous', label: 'Anonymous', icon: <VisibilityOffIcon style={{ fontSize: 16 }} />, desc: 'Anyone can read, but your name is hidden' },
+  { value: 'friends', label: 'Friends', icon: <GroupIcon style={{ fontSize: 16 }} />, desc: 'Only your followers can see this (coming soon)' },
+];
 
 function CreateChapter() {
   const navigate = useNavigate();
@@ -14,6 +25,7 @@ function CreateChapter() {
   const [date, setDate] = useState('');
   const [country, setCountry] = useState('');
   const [tags, setTags] = useState('');
+  const [privacy, setPrivacy] = useState('private');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -40,17 +52,23 @@ function CreateChapter() {
         authorId: auth.currentUser?.uid,
         createdAt: new Date(),
         likes: 0,
-        comments: []
+        comments: [],
+        privacy
       });
-      
-      alert('Chapter published! 🎉');
+
+      alert(privacy === 'private' ? 'Chapter saved!' : 'Chapter published!');
       navigate('/timeline');
     } catch (error) {
       console.error('Error publishing:', error);
-      alert('Failed to publish. Try again!');
+      alert('Failed to save. Try again!');
     }
     setLoading(false);
   };
+
+  const selectedPrivacy = privacyOptions.find(o => o.value === privacy);
+  const buttonText = loading
+    ? (privacy === 'private' ? 'Saving...' : 'Publishing...')
+    : (privacy === 'private' ? 'Save' : 'Publish');
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#fff' }}>
@@ -62,12 +80,12 @@ function CreateChapter() {
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <CloseIcon 
-          onClick={() => navigate(-1)} 
-          style={{ cursor: 'pointer', color: '#666' }} 
+        <CloseIcon
+          onClick={() => navigate(-1)}
+          style={{ cursor: 'pointer', color: '#666' }}
         />
         <h2 style={{ margin: 0, fontSize: '1.1em' }}>New Chapter</h2>
-        <button 
+        <button
           onClick={handlePublish}
           disabled={loading}
           style={{
@@ -80,7 +98,7 @@ function CreateChapter() {
             cursor: loading ? 'not-allowed' : 'pointer'
           }}
         >
-          {loading ? 'Publishing...' : 'Publish'}
+          {buttonText}
         </button>
       </div>
 
@@ -94,7 +112,7 @@ function CreateChapter() {
           borderRight: '1px solid #e0e0e0'
         }}>
           <h3 style={{ fontSize: '0.9em', color: '#666', marginBottom: '15px' }}>Write</h3>
-          
+
           <input
             type="text"
             placeholder="Chapter title"
@@ -147,7 +165,7 @@ function CreateChapter() {
 
           <input
             type="text"
-            placeholder="Country (e.g., 🇲🇾 Malaysia)"
+            placeholder="Country (e.g., Malaysia)"
             value={country}
             onChange={(e) => setCountry(e.target.value)}
             style={{
@@ -176,6 +194,40 @@ function CreateChapter() {
               outline: 'none'
             }}
           />
+
+          {/* Privacy Selector */}
+          <div style={{ marginBottom: '15px' }}>
+            <div style={{ fontSize: '0.85em', color: '#666', marginBottom: '8px', fontWeight: '600' }}>Privacy</div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {privacyOptions.map(option => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setPrivacy(option.value)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '8px 14px',
+                    border: privacy === option.value ? '1.5px solid #1a8917' : '1px solid #e0e0e0',
+                    borderRadius: '20px',
+                    background: privacy === option.value ? '#1a8917' : 'white',
+                    color: privacy === option.value ? 'white' : '#555',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {option.icon}
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <div style={{ fontSize: '12px', color: '#888', marginTop: '6px' }}>
+              {selectedPrivacy?.desc}
+            </div>
+          </div>
         </div>
 
         {/* Right: Preview */}
@@ -186,21 +238,40 @@ function CreateChapter() {
           background: '#fafafa'
         }}>
           <h3 style={{ fontSize: '0.9em', color: '#666', marginBottom: '15px' }}>Preview</h3>
-          
+
           <div style={{
             background: 'white',
             padding: '20px',
             borderRadius: '8px',
             border: '1px solid #e0e0e0'
           }}>
+            {/* Privacy badge */}
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '3px 10px',
+              borderRadius: '12px',
+              fontSize: '11px',
+              fontWeight: '500',
+              marginBottom: '12px',
+              background: privacy === 'private' ? '#f5f5f5' : privacy === 'public' ? '#e8f5e9' : privacy === 'anonymous' ? '#fff3e0' : '#e3f2fd',
+              color: privacy === 'private' ? '#666' : privacy === 'public' ? '#2e7d32' : privacy === 'anonymous' ? '#e65100' : '#1565c0'
+            }}>
+              {selectedPrivacy?.icon}
+              {selectedPrivacy?.label}
+            </div>
+
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '15px' }}>
               <div style={{ width: '32px', height: '32px', background: '#ddd', borderRadius: '50%' }}></div>
               <div style={{ fontSize: '12px', color: '#666' }}>
-                <div style={{ fontWeight: '600', color: '#000' }}>Your Name</div>
-                <div>{date || '2024'} • {country || '🌍 Country'}</div>
+                <div style={{ fontWeight: '600', color: '#000' }}>
+                  {privacy === 'anonymous' ? 'Anonymous' : 'Your Name'}
+                </div>
+                <div>{date || '2024'} • {country || 'Country'}</div>
               </div>
             </div>
-            
+
             <div style={{
               fontWeight: '600',
               fontSize: '1.2em',
@@ -209,7 +280,7 @@ function CreateChapter() {
             }}>
               {title || 'Your title appears here'}
             </div>
-            
+
             <div style={{
               fontFamily: 'Georgia, serif',
               fontSize: '1em',
