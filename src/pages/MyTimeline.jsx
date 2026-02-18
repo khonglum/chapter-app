@@ -3,13 +3,37 @@ import { useNavigate } from 'react-router-dom';
 import { collection, getDocs, query, orderBy, where } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import BottomNav from '../components/BottomNav';
+
 import ChapterModal from '../components/ChapterModal';
+import EditChapterModal from '../components/EditChapterModal';
 import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
 import LockIcon from '@mui/icons-material/Lock';
 import PublicIcon from '@mui/icons-material/Public';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import GroupIcon from '@mui/icons-material/Group';
+
+// Parse date field — handles "2020", "2020-05-14", numbers, Timestamps
+const parseDateValue = (dateStr) => {
+  if (!dateStr) return 0;
+  if (dateStr.toDate) return dateStr.toDate().getTime();
+  if (typeof dateStr === 'number') return new Date(dateStr + '-01-01T00:00:00').getTime();
+  const str = String(dateStr);
+  if (str.includes('-')) return new Date(str + 'T00:00:00').getTime();
+  return new Date(str + '-01-01T00:00:00').getTime();
+};
+
+// Format date for display
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  if (dateStr.toDate) return dateStr.toDate().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  if (typeof dateStr === 'number') return String(dateStr);
+  const str = String(dateStr);
+  if (str.includes('-')) {
+    return new Date(str + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+  return str;
+};
 
 const privacyBadge = (privacy) => {
   const config = {
@@ -28,6 +52,7 @@ function MyTimeline() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(auth.currentUser);
   const [selectedChapter, setSelectedChapter] = useState(null);
+  const [editingChapter, setEditingChapter] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -58,6 +83,8 @@ function MyTimeline() {
         id: doc.id,
         ...doc.data()
       }));
+      // Sort by year descending (newest first)
+      chaptersData.sort((a, b) => parseDateValue(b.date) - parseDateValue(a.date));
       setChapters(chaptersData);
     } catch (error) {
       console.error('Error fetching chapters:', error);
@@ -65,8 +92,15 @@ function MyTimeline() {
     setLoading(false);
   };
 
+  const handleChapterSaved = (updatedChapter) => {
+    setChapters(prev =>
+      prev.map(ch => ch.id === updatedChapter.id ? updatedChapter : ch)
+        .sort((a, b) => parseDateValue(b.date) - parseDateValue(a.date))
+    );
+  };
+
   return (
-    <div style={{ paddingBottom: '80px', minHeight: '100vh' }}>
+    <div style={{ minHeight: '100vh' }}>
       {/* Header */}
       <div style={{
         padding: '20px',
@@ -142,12 +176,27 @@ function MyTimeline() {
                   {badge.label}
                 </div>
 
-                <div style={{ fontWeight: '600', fontSize: '14px', marginBottom: '8px' }}>{chapter.title}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                  <div style={{ fontWeight: '600', fontSize: '14px', flex: 1 }}>{chapter.title}</div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setEditingChapter(chapter); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '4px',
+                      padding: '4px 10px', background: 'none',
+                      border: '1px solid #e0e0e0', borderRadius: '14px',
+                      fontSize: '11px', color: '#666', cursor: 'pointer',
+                      flexShrink: 0, marginLeft: '10px'
+                    }}
+                  >
+                    <EditIcon style={{ fontSize: 13 }} />
+                    Edit
+                  </button>
+                </div>
                 <div style={{ fontSize: '13px', color: '#555', fontFamily: 'Georgia, serif', lineHeight: '1.5', marginBottom: '10px' }}>
                   {chapter.story.substring(0, 150)}...
                 </div>
                 <div style={{ fontSize: '12px', color: '#666' }}>
-                  {chapter.date} · {chapter.country}
+                  {formatDate(chapter.date)} · {chapter.country}
                 </div>
               </div>
             );
@@ -213,7 +262,15 @@ function MyTimeline() {
         />
       )}
 
-      <BottomNav />
+      {/* Edit Chapter Modal */}
+      {editingChapter && (
+        <EditChapterModal
+          chapter={editingChapter}
+          onClose={() => setEditingChapter(null)}
+          onSaved={handleChapterSaved}
+        />
+      )}
+
     </div>
   );
 }

@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import CountrySelect from '../components/CountrySelect';
 import CloseIcon from '@mui/icons-material/Close';
-import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import LockIcon from '@mui/icons-material/Lock';
 import PublicIcon from '@mui/icons-material/Public';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
@@ -18,6 +18,9 @@ const privacyOptions = [
   { value: 'friends', label: 'Friends', icon: <GroupIcon style={{ fontSize: 16 }} />, desc: 'Only your followers can see this (coming soon)' },
 ];
 
+const currentYear = new Date().getFullYear();
+const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
 function CreateChapter() {
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
@@ -29,10 +32,12 @@ function CreateChapter() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-  if (!auth.currentUser) {
-    navigate('/login');
-  }
-}, [navigate]);
+    if (!auth.currentUser) {
+      navigate('/login');
+    }
+  }, [navigate]);
+
+  const displayName = auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'You';
 
   const handlePublish = async () => {
     if (!title || !story || !country) {
@@ -45,10 +50,10 @@ function CreateChapter() {
       await addDoc(collection(db, 'chapters'), {
         title,
         story,
-        date: date || new Date().getFullYear().toString(),
+        date: date || todayStr,
         country,
         tags: tags.split(',').map(t => t.trim()).filter(t => t),
-        author: auth.currentUser?.displayName || auth.currentUser?.email || 'Anonymous',
+        author: auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Anonymous',
         authorId: auth.currentUser?.uid,
         createdAt: new Date(),
         likes: 0,
@@ -125,7 +130,8 @@ function CreateChapter() {
               borderRadius: '6px',
               marginBottom: '15px',
               fontSize: '1em',
-              outline: 'none'
+              outline: 'none',
+              boxSizing: 'border-box',
             }}
           />
 
@@ -143,15 +149,18 @@ function CreateChapter() {
               fontSize: '1em',
               fontFamily: 'Georgia, serif',
               resize: 'vertical',
-              outline: 'none'
+              outline: 'none',
+              boxSizing: 'border-box',
             }}
           />
 
+          {/* Date picker */}
           <input
-            type="text"
-            placeholder="Date (e.g., 2020)"
+            type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
+            max={todayStr}
+            min="1900-01-01"
             style={{
               width: '100%',
               padding: '12px',
@@ -159,25 +168,21 @@ function CreateChapter() {
               borderRadius: '6px',
               marginBottom: '15px',
               fontSize: '1em',
-              outline: 'none'
+              outline: 'none',
+              background: '#fff',
+              boxSizing: 'border-box',
+              color: date ? '#000' : '#888',
             }}
           />
 
-          <input
-            type="text"
-            placeholder="Country (e.g., Malaysia)"
-            value={country}
-            onChange={(e) => setCountry(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '12px',
-              border: '1px solid #e0e0e0',
-              borderRadius: '6px',
-              marginBottom: '15px',
-              fontSize: '1em',
-              outline: 'none'
-            }}
-          />
+          {/* Country typeahead */}
+          <div style={{ marginBottom: '15px' }}>
+            <CountrySelect
+              value={country}
+              onChange={setCountry}
+              placeholder="Select country..."
+            />
+          </div>
 
           <input
             type="text"
@@ -191,7 +196,8 @@ function CreateChapter() {
               borderRadius: '6px',
               marginBottom: '15px',
               fontSize: '1em',
-              outline: 'none'
+              outline: 'none',
+              boxSizing: 'border-box',
             }}
           />
 
@@ -263,12 +269,20 @@ function CreateChapter() {
             </div>
 
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '15px' }}>
-              <div style={{ width: '32px', height: '32px', background: '#ddd', borderRadius: '50%' }}></div>
+              <div style={{
+                width: '32px', height: '32px',
+                background: privacy === 'anonymous' ? '#9e9e9e' : '#1a8917',
+                borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '13px', color: '#fff', fontWeight: '600',
+              }}>
+                {privacy === 'anonymous' ? '?' : displayName.charAt(0).toUpperCase()}
+              </div>
               <div style={{ fontSize: '12px', color: '#666' }}>
                 <div style={{ fontWeight: '600', color: '#000' }}>
-                  {privacy === 'anonymous' ? 'Anonymous' : 'Your Name'}
+                  {privacy === 'anonymous' ? 'Anonymous' : displayName}
                 </div>
-                <div>{date || '2024'} • {country || 'Country'}</div>
+                <div>{date ? new Date(date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : currentYear} · {country || 'Country'}</div>
               </div>
             </div>
 

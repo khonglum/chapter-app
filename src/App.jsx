@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
+import Layout from './components/Layout';
 import Home from './pages/Home';
 import Explore from './pages/Explore';
 import MyTimeline from './pages/MyTimeline';
@@ -11,10 +12,10 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/explore" element={<Explore />} />
-        <Route path="/timeline" element={<MyTimeline />} />
-        <Route path="/profile" element={<Profile />} />
+        <Route path="/" element={<Layout><Home /></Layout>} />
+        <Route path="/explore" element={<Layout><Explore /></Layout>} />
+        <Route path="/timeline" element={<Layout><MyTimeline /></Layout>} />
+        <Route path="/profile" element={<Layout><Profile /></Layout>} />
         <Route path="/create" element={<CreateChapter />} />
         <Route path="/login" element={<Login />} />
       </Routes>

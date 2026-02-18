@@ -3,7 +3,7 @@ import { signOut } from 'firebase/auth';
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import BottomNav from '../components/BottomNav';
+
 import ChapterModal from '../components/ChapterModal';
 import SettingsIcon from '@mui/icons-material/Settings';
 
@@ -52,7 +52,7 @@ function Profile() {
   const displayName = user?.displayName || user?.email?.split('@')[0] || 'User';
 
   return (
-    <div style={{ paddingBottom: '80px', minHeight: '100vh', background: '#fafafa' }}>
+    <div style={{ minHeight: '100vh', background: '#fafafa' }}>
       {/* Header with Settings */}
       <div style={{
         padding: '20px',
@@ -209,7 +209,6 @@ function Profile() {
         />
       )}
 
-      <BottomNav />
     </div>
   );
 }

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import BottomNav from '../components/BottomNav';
+
 
 function Home() {
     const navigate = useNavigate();
   return (
-    <div style={{ paddingBottom: '80px', minHeight: '100vh', background: '#fafafa' }}>
+    <div style={{ minHeight: '100vh', background: '#fafafa' }}>
       {/* Hero Section */}
       <div style={{
         background: 'linear-gradient(135deg, #191919 0%, #2c2c2c 100%)',
@@ -13,7 +13,7 @@ function Home() {
         padding: '60px 20px',
         textAlign: 'center'
       }}>
-        <h1 style={{ fontSize: '2.5em', marginBottom: '15px' }}>📖 Chapter</h1>
+        <img src="/Chapter.svg" alt="Chapter" style={{ height: '56px', filter: 'invert(1)', marginBottom: '15px' }} />
         <p style={{ fontSize: '1.1em', opacity: 0.9 }}>
           Your life story, in the context of world history
         </p>
@@ -72,7 +72,6 @@ function Home() {
         </button>
         </div>
 
-      <BottomNav />
     </div>
   );
 }

@@ -1,0 +1,31 @@
+.layout-container {
+  min-height: 100vh;
+}
+
+/* Desktop: sidebar visible, bottom nav hidden */
+@media (min-width: 769px) {
+  .layout-sidebar {
+    display: flex;
+  }
+  .layout-bottom-nav {
+    display: none;
+  }
+  .layout-content {
+    margin-left: 240px;
+    padding-bottom: 0;
+  }
+}
+
+/* Mobile: sidebar hidden, bottom nav visible */
+@media (max-width: 768px) {
+  .layout-sidebar {
+    display: none;
+  }
+  .layout-bottom-nav {
+    display: block;
+  }
+  .layout-content {
+    margin-left: 0;
+    padding-bottom: 80px;
+  }
+}
