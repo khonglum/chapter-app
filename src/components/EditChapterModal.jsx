@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import CountrySelect from './CountrySelect';
+import StateSelect from './StateSelect';
 import CloseIcon from '@mui/icons-material/Close';
 import LockIcon from '@mui/icons-material/Lock';
 import PublicIcon from '@mui/icons-material/Public';
@@ -22,6 +23,8 @@ function EditChapterModal({ chapter, onClose, onSaved }) {
   const [story, setStory] = useState(chapter.story || '');
   const [date, setDate] = useState(chapter.date || '');
   const [country, setCountry] = useState(chapter.country || '');
+  const [state, setState] = useState(chapter.state || '');
+  const [city, setCity] = useState(chapter.city || '');
   const [tags, setTags] = useState((chapter.tags || []).join(', '));
   const [privacy, setPrivacy] = useState(chapter.privacy || 'public');
   const [saving, setSaving] = useState(false);
@@ -50,6 +53,8 @@ function EditChapterModal({ chapter, onClose, onSaved }) {
         story,
         date: date || todayStr,
         country,
+        state: state || '',
+        city: city || '',
         tags: tags.split(',').map(t => t.trim()).filter(t => t),
         privacy,
       };
@@ -169,10 +174,33 @@ function EditChapterModal({ chapter, onClose, onSaved }) {
             <div style={{ flex: 1 }}>
               <CountrySelect
                 value={country}
-                onChange={setCountry}
+                onChange={(val) => { setCountry(val); setState(''); setCity(''); }}
                 placeholder="Select country..."
               />
             </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+            <div style={{ flex: 1 }}>
+              <StateSelect
+                country={country}
+                value={state}
+                onChange={setState}
+                placeholder="State / Region (optional)"
+              />
+            </div>
+            <input
+              type="text"
+              placeholder="City (optional)"
+              value={city}
+              onChange={e => setCity(e.target.value)}
+              style={{
+                flex: 1, padding: '12px',
+                border: '1px solid #e0e0e0', borderRadius: '8px',
+                fontSize: '14px', outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
           </div>
 
           <input

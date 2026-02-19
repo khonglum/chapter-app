@@ -3,6 +3,10 @@ import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 import ChapterModal from '../components/ChapterModal';
 import CountrySelect from '../components/CountrySelect';
+import formatLocation from '../utils/formatLocation';
+import worldEvents from '../data/worldEvents';
+import countryEvents from '../data/countryEvents';
+import EventPill from '../components/EventPill';
 
 // Base decades: 1970 – 2030 always shown
 const BASE_MIN_DECADE = 1970;
@@ -27,22 +31,6 @@ const buildDecades = (chapters) => {
 const decadeLabel = (decade) => {
   const start = parseInt(decade);
   return `${start} – ${start + 10}`;
-};
-
-const worldEvents = {
-  '2020s': ['COVID-19 Pandemic', 'Rise of AI', 'Climate Crisis'],
-  '2010s': ['Social Media Revolution', 'Arab Spring', 'Bitcoin & Crypto'],
-  '2000s': ['Rise of the Internet', '9/11 & War on Terror', 'iPhone Launch'],
-  '1990s': ['Fall of the Berlin Wall', 'World Wide Web', 'Mandela Freed'],
-  '1980s': ['End of the Cold War', 'MTV & Pop Culture', 'Chernobyl'],
-  '1970s': ['Moon Landing Era', 'Oil Crisis', 'Watergate'],
-  '1960s': ['Civil Rights Movement', 'Vietnam War', 'Woodstock'],
-  '1950s': ['Post-War Boom', 'Korean War', 'Rock & Roll'],
-  '1940s': ['World War II', 'Atomic Bomb', 'United Nations Founded'],
-  '1930s': ['The Great Depression', 'Rise of Fascism', 'Golden Age of Cinema'],
-  '1920s': ['The Roaring Twenties', 'Jazz Age', 'Women\'s Suffrage'],
-  '1910s': ['World War I', 'Russian Revolution', 'Spanish Flu'],
-  '1900s': ['Wright Brothers Flight', 'Einstein\'s Relativity', 'Ford Model T'],
 };
 
 // Parse date field to sortable value — handles "2020", "2020-05-14", numbers, Timestamps
@@ -85,7 +73,19 @@ function Explore() {
   const [selectedChapter, setSelectedChapter] = useState(null);
   const [activeDecade, setActiveDecade] = useState('2020s');
   const [countryFilter, setCountryFilter] = useState('');
+  const [expandedDecades, setExpandedDecades] = useState({});
   const sectionRefs = useRef({});
+
+  const CARDS_PER_PAGE = 4;
+
+  const getVisibleCount = (decade) => expandedDecades[decade] || CARDS_PER_PAGE;
+
+  const showMore = (decade) => {
+    setExpandedDecades(prev => ({
+      ...prev,
+      [decade]: (prev[decade] || CARDS_PER_PAGE) + CARDS_PER_PAGE,
+    }));
+  };
 
   useEffect(() => {
     const fetchChapters = async () => {
@@ -185,31 +185,32 @@ function Explore() {
           border: '1px solid #e8e8e8',
           cursor: 'pointer',
           transition: 'box-shadow 0.2s',
+          textAlign: 'left',
         }}
         onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.08)'}
         onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
       >
-        <div style={{ position: 'relative', marginBottom: '12px' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '12px' }}>
           <div style={{
-            position: 'absolute', left: 0, top: 0,
-            width: '34px', height: '34px',
+            width: '28px', height: '28px', flexShrink: 0,
             background: isAnonymous ? '#9e9e9e' : '#1a8917',
             borderRadius: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '13px', color: '#fff', fontWeight: '600',
+            fontSize: '12px', color: '#fff', fontWeight: '600',
+            marginTop: '1px',
           }}>
             {isAnonymous ? '?' : (authorName.charAt(0) || '').toUpperCase()}
           </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontWeight: '600', fontSize: '13px', color: '#111', lineHeight: '1.3' }}>
+          <div style={{ textAlign: 'left' }}>
+            <div style={{ fontWeight: '600', fontSize: '13px', color: '#111', lineHeight: '1.4' }}>
               {authorName}
             </div>
-            <div style={{ fontSize: '12px', color: '#888', lineHeight: '1.3' }}>
-              {formatDate(chapter.date)} · {chapter.country}
+            <div style={{ fontSize: '12px', color: '#888', lineHeight: '1.4' }}>
+              {formatDate(chapter.date)} · {formatLocation(chapter.country, chapter.state, chapter.city)}
             </div>
           </div>
         </div>
-        <div style={{ fontWeight: '700', fontSize: '15px', marginBottom: '8px', color: '#111', lineHeight: '1.4', textAlign: 'center' }}>
+        <div style={{ fontWeight: '700', fontSize: '15px', marginBottom: '8px', color: '#111', lineHeight: '1.4', textAlign: 'left' }}>
           {chapter.title}
         </div>
         <div style={{
@@ -243,25 +244,25 @@ function Explore() {
         position: 'sticky', top: 0, background: '#fff',
         zIndex: 10, borderBottom: '1px solid #e8e8e8'
       }}>
-        {/* Search + Country Filter */}
+        {/* Country Filter + Search */}
         <div style={{ padding: '16px 20px 12px', maxWidth: '900px', margin: '0 auto', display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <div style={{ flex: 1 }}>
+          <div style={{ width: '35%', flexShrink: 0 }}>
+            <CountrySelect
+              value={countryFilter}
+              onChange={setCountryFilter}
+              placeholder="Filter by country..."
+            />
+          </div>
+          <div style={{ width: '65%' }}>
             <input
               type="text"
-              placeholder="Search chapters, tags, countries..."
+              placeholder="Search..."
               style={{
                 width: '100%', padding: '10px 18px',
                 border: '1px solid #e0e0e0', borderRadius: '8px',
                 fontSize: '14px', outline: 'none', background: '#f9f9f9',
                 boxSizing: 'border-box'
               }}
-            />
-          </div>
-          <div style={{ width: '200px', flexShrink: 0 }}>
-            <CountrySelect
-              value={countryFilter}
-              onChange={setCountryFilter}
-              placeholder="Filter by country..."
             />
           </div>
         </div>
@@ -298,11 +299,77 @@ function Explore() {
       {/* Timeline content */}
       <div style={{ maxWidth: '900px', margin: '0 auto', padding: '8px 20px 40px' }}>
 
-        {loading && (
-          <div style={{ textAlign: 'center', padding: '60px 20px', color: '#888' }}>
-            Loading chapters...
-          </div>
-        )}
+        {loading && (() => {
+          const shimmerStyle = {
+            background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+            backgroundSize: '800px 100%',
+            animation: 'shimmer 1.5s infinite ease-in-out',
+            borderRadius: '4px',
+          };
+
+          const SkeletonCard = () => (
+            <div style={{
+              background: '#fff', borderRadius: '10px', padding: '18px',
+              border: '1px solid #e8e8e8',
+            }}>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '12px' }}>
+                <div style={{ ...shimmerStyle, width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ ...shimmerStyle, width: '60%', height: '13px', marginBottom: '6px' }} />
+                  <div style={{ ...shimmerStyle, width: '80%', height: '11px' }} />
+                </div>
+              </div>
+              <div style={{ ...shimmerStyle, width: '75%', height: '15px', marginBottom: '10px' }} />
+              <div style={{ ...shimmerStyle, width: '100%', height: '12px', marginBottom: '6px' }} />
+              <div style={{ ...shimmerStyle, width: '100%', height: '12px', marginBottom: '6px' }} />
+              <div style={{ ...shimmerStyle, width: '45%', height: '12px' }} />
+            </div>
+          );
+
+          const skeletonDecades = ['2020s', '2010s', '2000s'];
+
+          return (
+            <div style={{ position: 'relative' }}>
+              <div style={{
+                position: 'absolute', left: '11px', top: '24px', bottom: '24px',
+                width: '2px', background: '#e0e0e0',
+              }} />
+
+              {skeletonDecades.map((decade, i) => (
+                <div key={decade} style={{
+                  position: 'relative', paddingLeft: '40px',
+                  paddingBottom: i < skeletonDecades.length - 1 ? '32px' : '0',
+                }}>
+                  {/* Decade dot */}
+                  <div style={{
+                    position: 'absolute', left: '0', top: '4px',
+                    width: '24px', height: '24px', borderRadius: '50%',
+                    background: '#e0e0e0', border: '3px solid #fafafa',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2,
+                  }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#fff' }} />
+                  </div>
+
+                  {/* Decade label shimmer */}
+                  <div style={{ ...shimmerStyle, width: '120px', height: '22px', marginBottom: '10px' }} />
+
+                  {/* Event pills shimmer */}
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                    <div style={{ ...shimmerStyle, width: '110px', height: '26px', borderRadius: '14px' }} />
+                    <div style={{ ...shimmerStyle, width: '90px', height: '26px', borderRadius: '14px' }} />
+                    <div style={{ ...shimmerStyle, width: '100px', height: '26px', borderRadius: '14px' }} />
+                  </div>
+
+                  {/* Cards grid shimmer */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                    <SkeletonCard />
+                    <SkeletonCard />
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
 
         {!loading && (
           <div style={{ position: 'relative' }}>
@@ -319,6 +386,14 @@ function Explore() {
             {decades.map((decade, decadeIndex) => {
               const decadeChapters = chaptersByDecade[decade] || [];
               const events = worldEvents[decade] || [];
+
+              // Local country events when filter is active
+              const filterCountryName = countryFilter
+                ? countryFilter.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim()
+                : '';
+              const localEvents = filterCountryName && countryEvents[filterCountryName]
+                ? countryEvents[filterCountryName][decade] || []
+                : [];
 
               return (
                 <div
@@ -367,27 +442,30 @@ function Explore() {
                       display: 'flex', gap: '8px', flexWrap: 'wrap',
                     }}>
                       {events.map((event, i) => (
-                        <span key={i} style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          background: '#fff',
-                          border: '1px solid #e0e0e0',
-                          padding: '4px 12px',
-                          borderRadius: '14px',
-                          fontSize: '12px',
-                          color: '#555',
-                        }}>
-                          <span style={{
-                            width: '6px', height: '6px',
-                            borderRadius: '50%',
-                            background: '#1a8917',
-                            flexShrink: 0,
-                          }} />
-                          {event}
-                        </span>
+                        <EventPill
+                          key={i}
+                          label={typeof event === 'string' ? event : event.label}
+                          desc={typeof event === 'string' ? null : event.desc}
+                          variant="world"
+                        />
                       ))}
                     </div>
+
+                    {/* Local country events — shown when country filter active */}
+                    {localEvents.length > 0 && (
+                      <div style={{
+                        display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px',
+                      }}>
+                        {localEvents.map((event, i) => (
+                          <EventPill
+                            key={`local-${i}`}
+                            label={typeof event === 'string' ? event : event.label}
+                            desc={typeof event === 'string' ? null : event.desc}
+                            variant="local"
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Chapter count */}
@@ -399,18 +477,50 @@ function Explore() {
                     </div>
                   )}
 
-                  {/* Chapter cards — 2 column grid */}
-                  {decadeChapters.length > 0 && (
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(2, 1fr)',
-                      gap: '12px',
-                    }}>
-                      {decadeChapters.map(chapter => (
-                        <ChapterCard key={chapter.id} chapter={chapter} />
-                      ))}
-                    </div>
-                  )}
+                  {/* Chapter cards — 2 column grid with show more */}
+                  {decadeChapters.length > 0 && (() => {
+                    const visibleCount = getVisibleCount(decade);
+                    const visibleChapters = decadeChapters.slice(0, visibleCount);
+                    const remaining = decadeChapters.length - visibleCount;
+
+                    return (
+                      <>
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(2, 1fr)',
+                          gap: '12px',
+                        }}>
+                          {visibleChapters.map(chapter => (
+                            <ChapterCard key={chapter.id} chapter={chapter} />
+                          ))}
+                        </div>
+
+                        {remaining > 0 && (
+                          <button
+                            onClick={() => showMore(decade)}
+                            style={{
+                              display: 'block',
+                              width: '100%',
+                              padding: '12px',
+                              marginTop: '12px',
+                              background: '#fff',
+                              border: '1px solid #e0e0e0',
+                              borderRadius: '8px',
+                              fontSize: '13px',
+                              fontWeight: '600',
+                              color: '#1a8917',
+                              cursor: 'pointer',
+                              transition: 'background 0.15s',
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = '#f0f7f0'}
+                            onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                          >
+                            Show more stories ({remaining} remaining)
+                          </button>
+                        )}
+                      </>
+                    );
+                  })()}
 
                   {/* Empty decade state */}
                   {decadeChapters.length === 0 && (

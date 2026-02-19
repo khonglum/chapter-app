@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import CountrySelect from '../components/CountrySelect';
+import StateSelect from '../components/StateSelect';
+import formatLocation from '../utils/formatLocation';
 import CloseIcon from '@mui/icons-material/Close';
 import LockIcon from '@mui/icons-material/Lock';
 import PublicIcon from '@mui/icons-material/Public';
@@ -27,6 +29,8 @@ function CreateChapter() {
   const [story, setStory] = useState('');
   const [date, setDate] = useState('');
   const [country, setCountry] = useState('');
+  const [state, setState] = useState('');
+  const [city, setCity] = useState('');
   const [tags, setTags] = useState('');
   const [privacy, setPrivacy] = useState('private');
   const [loading, setLoading] = useState(false);
@@ -52,6 +56,8 @@ function CreateChapter() {
         story,
         date: date || todayStr,
         country,
+        state: state || '',
+        city: city || '',
         tags: tags.split(',').map(t => t.trim()).filter(t => t),
         author: auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Anonymous',
         authorId: auth.currentUser?.uid,
@@ -179,10 +185,38 @@ function CreateChapter() {
           <div style={{ marginBottom: '15px' }}>
             <CountrySelect
               value={country}
-              onChange={setCountry}
+              onChange={(val) => { setCountry(val); setState(''); setCity(''); }}
               placeholder="Select country..."
             />
           </div>
+
+          {/* State / Region typeahead */}
+          <div style={{ marginBottom: '15px' }}>
+            <StateSelect
+              country={country}
+              value={state}
+              onChange={setState}
+              placeholder="State / Region (optional)"
+            />
+          </div>
+
+          {/* City */}
+          <input
+            type="text"
+            placeholder="City (optional)"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '12px',
+              border: '1px solid #e0e0e0',
+              borderRadius: '6px',
+              marginBottom: '15px',
+              fontSize: '1em',
+              outline: 'none',
+              boxSizing: 'border-box',
+            }}
+          />
 
           <input
             type="text"
@@ -282,7 +316,7 @@ function CreateChapter() {
                 <div style={{ fontWeight: '600', color: '#000' }}>
                   {privacy === 'anonymous' ? 'Anonymous' : displayName}
                 </div>
-                <div>{date ? new Date(date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : currentYear} · {country || 'Country'}</div>
+                <div>{date ? new Date(date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : currentYear} · {formatLocation(country, state, city) || 'Country'}</div>
               </div>
             </div>
 

@@ -6,6 +6,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 
 import ChapterModal from '../components/ChapterModal';
 import EditChapterModal from '../components/EditChapterModal';
+import formatLocation from '../utils/formatLocation';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import LockIcon from '@mui/icons-material/Lock';
@@ -196,7 +197,7 @@ function MyTimeline() {
                   {chapter.story.substring(0, 150)}...
                 </div>
                 <div style={{ fontSize: '12px', color: '#666' }}>
-                  {formatDate(chapter.date)} · {chapter.country}
+                  {formatDate(chapter.date)} · {formatLocation(chapter.country, chapter.state, chapter.city)}
                 </div>
               </div>
             );

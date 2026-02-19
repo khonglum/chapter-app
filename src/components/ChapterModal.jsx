@@ -6,6 +6,7 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import formatLocation from '../utils/formatLocation';
 
 const parseDateValue = (dateStr) => {
   if (!dateStr) return 0;
@@ -187,12 +188,12 @@ function ChapterModal({ chapter: initialChapter, onClose }) {
             }}>
               {isAnonymous ? '?' : (displayAuthor(chapter.author).charAt(0) || '').toUpperCase()}
             </div>
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ fontWeight: '600', fontSize: '14px' }}>
+            <div>
+              <div style={{ fontWeight: '600', fontSize: '14px', lineHeight: '1.3' }}>
                 {isAnonymous ? 'Anonymous' : displayAuthor(chapter.author)}
               </div>
-              <div style={{ fontSize: '12px', color: '#666' }}>
-                {formatDate(chapter.date)} · {chapter.country}
+              <div style={{ fontSize: '12px', color: '#666', lineHeight: '1.3' }}>
+                {formatDate(chapter.date)} · {formatLocation(chapter.country, chapter.state, chapter.city)}
               </div>
             </div>
           </div>
