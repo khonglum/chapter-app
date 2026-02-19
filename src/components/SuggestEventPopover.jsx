@@ -266,7 +266,7 @@ function SuggestEventPopover({ decade, countryFilter, onClose }) {
       {/* Divider */}
       {suggestions.length > 0 && (
         <div style={{ borderTop: '1px solid #eee', paddingTop: '12px' }}>
-          <div style={{ fontSize: '11px', fontWeight: '600', color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
+          <div style={{ fontSize: '11px', fontWeight: '600', color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px', textAlign: 'left' }}>
             Community suggestions
           </div>
 
@@ -329,7 +329,7 @@ function SuggestEventPopover({ decade, countryFilter, onClose }) {
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: '12px', color: '#888', lineHeight: '1.4' }}>
+                  <div style={{ fontSize: '12px', color: '#888', lineHeight: '1.4', textAlign: 'left' }}>
                     {s.description}
                   </div>
                 </div>
