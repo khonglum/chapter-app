@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import ChapterModal from '../components/ChapterModal';
 import CountrySelect from '../components/CountrySelect';
+import SuggestEventPopover from '../components/SuggestEventPopover';
 import formatLocation from '../utils/formatLocation';
 import worldEvents from '../data/worldEvents';
 import countryEvents from '../data/countryEvents';
@@ -74,6 +75,7 @@ function Explore() {
   const [activeDecade, setActiveDecade] = useState('2020s');
   const [countryFilter, setCountryFilter] = useState('');
   const [expandedDecades, setExpandedDecades] = useState({});
+  const [openSuggest, setOpenSuggest] = useState(null); // decade key or null
   const sectionRefs = useRef({});
 
   const CARDS_PER_PAGE = 4;
@@ -439,7 +441,7 @@ function Explore() {
 
                     {/* World events */}
                     <div style={{
-                      display: 'flex', gap: '8px', flexWrap: 'wrap',
+                      display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center',
                     }}>
                       {events.map((event, i) => (
                         <EventPill
@@ -454,7 +456,7 @@ function Explore() {
                     {/* Local country events — shown when country filter active */}
                     {localEvents.length > 0 && (
                       <div style={{
-                        display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px',
+                        display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px', alignItems: 'center',
                       }}>
                         {localEvents.map((event, i) => (
                           <EventPill
@@ -466,6 +468,45 @@ function Explore() {
                         ))}
                       </div>
                     )}
+
+                    {/* Suggest event + button */}
+                    <div style={{ position: 'relative', display: 'inline-block', marginTop: '8px' }}>
+                      <button
+                        onClick={() => setOpenSuggest(openSuggest === decade ? null : decade)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '4px 10px',
+                          borderRadius: '14px',
+                          fontSize: '12px',
+                          border: '1px dashed #ccc',
+                          background: openSuggest === decade ? '#f5f5f5' : '#fff',
+                          color: '#999',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.borderColor = '#1a8917';
+                          e.currentTarget.style.color = '#1a8917';
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.borderColor = '#ccc';
+                          e.currentTarget.style.color = '#999';
+                        }}
+                      >
+                        <span style={{ fontSize: '14px', lineHeight: 1 }}>+</span>
+                        <span>Suggest</span>
+                      </button>
+
+                      {openSuggest === decade && (
+                        <SuggestEventPopover
+                          decade={decade}
+                          countryFilter={countryFilter}
+                          onClose={() => setOpenSuggest(null)}
+                        />
+                      )}
+                    </div>
                   </div>
 
                   {/* Chapter count */}

@@ -39,5 +39,31 @@ service cloud.firestore {
         allow delete: if request.auth != null && likeId == request.auth.uid;
       }
     }
+
+    // Suggested events collection — community event suggestions with voting
+    match /suggestedEvents/{eventId} {
+      // Anyone can read suggestions
+      allow read: if true;
+
+      // Authenticated users can create suggestions
+      allow create: if request.auth != null
+                    && request.resource.data.suggestedBy == request.auth.uid;
+
+      // Allow authenticated users to update votes
+      allow update: if request.auth != null;
+
+      // Only the author can delete their suggestion
+      allow delete: if request.auth != null
+                    && resource.data.suggestedBy == request.auth.uid;
+
+      // Voters subcollection — tracks who voted for each suggestion
+      match /voters/{voterId} {
+        allow read: if true;
+        // Authenticated users can vote (voterId must be their uid)
+        allow create: if request.auth != null && voterId == request.auth.uid;
+        // Users can only remove their own vote
+        allow delete: if request.auth != null && voterId == request.auth.uid;
+      }
+    }
   }
 }
