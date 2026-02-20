@@ -628,6 +628,15 @@ function Explore() {
         <ChapterModal
           chapter={selectedChapter}
           onClose={() => setSelectedChapter(null)}
+          onReactionChange={(chapterId, type, count) => {
+            setReactionCounts(prev => ({
+              ...prev,
+              [chapterId]: {
+                ...prev[chapterId],
+                [type]: count,
+              }
+            }));
+          }}
         />
       )}
     </div>

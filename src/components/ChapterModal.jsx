@@ -34,7 +34,7 @@ const displayAuthor = (author) => {
   return author;
 };
 
-function ChapterModal({ chapter: initialChapter, onClose }) {
+function ChapterModal({ chapter: initialChapter, onClose, onReactionChange }) {
   const [chapter, setChapter] = useState(initialChapter);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
@@ -116,11 +116,19 @@ function ChapterModal({ chapter: initialChapter, onClose }) {
       if (liked) {
         await deleteDoc(likeRef);
         setLiked(false);
-        setLikeCount(prev => Math.max(0, prev - 1));
+        setLikeCount(prev => {
+          const newCount = Math.max(0, prev - 1);
+          if (onReactionChange) onReactionChange(chapter.id, 'likes', newCount);
+          return newCount;
+        });
       } else {
         await setDoc(likeRef, { likedAt: new Date() });
         setLiked(true);
-        setLikeCount(prev => prev + 1);
+        setLikeCount(prev => {
+          const newCount = prev + 1;
+          if (onReactionChange) onReactionChange(chapter.id, 'likes', newCount);
+          return newCount;
+        });
       }
     } catch (err) {
       console.error('Error toggling like:', err);
@@ -136,11 +144,19 @@ function ChapterModal({ chapter: initialChapter, onClose }) {
       if (resonated) {
         await deleteDoc(resonateRef);
         setResonated(false);
-        setResonateCount(prev => Math.max(0, prev - 1));
+        setResonateCount(prev => {
+          const newCount = Math.max(0, prev - 1);
+          if (onReactionChange) onReactionChange(chapter.id, 'resonates', newCount);
+          return newCount;
+        });
       } else {
         await setDoc(resonateRef, { resonatedAt: new Date() });
         setResonated(true);
-        setResonateCount(prev => prev + 1);
+        setResonateCount(prev => {
+          const newCount = prev + 1;
+          if (onReactionChange) onReactionChange(chapter.id, 'resonates', newCount);
+          return newCount;
+        });
       }
     } catch (err) {
       console.error('Error toggling resonate:', err);
