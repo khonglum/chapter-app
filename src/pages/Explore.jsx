@@ -8,6 +8,7 @@ import formatLocation from '../utils/formatLocation';
 import worldEvents from '../data/worldEvents';
 import countryEvents from '../data/countryEvents';
 import EventPill from '../components/EventPill';
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 
 // Base decades: 1970 – 2030 always shown
 const BASE_MIN_DECADE = 1970;
@@ -76,6 +77,7 @@ function Explore() {
   const [countryFilter, setCountryFilter] = useState('');
   const [expandedDecades, setExpandedDecades] = useState({});
   const [openSuggest, setOpenSuggest] = useState(null); // decade key or null
+  const [reactionCounts, setReactionCounts] = useState({}); // { chapterId: { likes: N, resonates: N } }
   const sectionRefs = useRef({});
 
   const CARDS_PER_PAGE = 4;
@@ -102,6 +104,21 @@ function Explore() {
           !ch.privacy || ch.privacy === 'public' || ch.privacy === 'anonymous'
         );
         setChapters(visible);
+
+        // Fetch like + resonate counts in parallel
+        const counts = {};
+        await Promise.all(visible.map(async (ch) => {
+          try {
+            const [likesSnap, resonatesSnap] = await Promise.all([
+              getDocs(collection(db, 'chapters', ch.id, 'likes')),
+              getDocs(collection(db, 'chapters', ch.id, 'resonates')),
+            ]);
+            counts[ch.id] = { likes: likesSnap.size, resonates: resonatesSnap.size };
+          } catch (e) {
+            counts[ch.id] = { likes: 0, resonates: 0 };
+          }
+        }));
+        setReactionCounts(counts);
       } catch (error) {
         console.error('Error fetching chapters:', error);
       }
@@ -235,6 +252,28 @@ function Explore() {
             ))}
           </div>
         )}
+
+        {/* Like + Resonate counts */}
+        {(() => {
+          const counts = reactionCounts[chapter.id];
+          if (!counts || (counts.likes === 0 && counts.resonates === 0)) return null;
+          return (
+            <div style={{ marginTop: '12px', display: 'flex', gap: '12px', alignItems: 'center' }}>
+              {counts.likes > 0 && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '12px', color: '#999' }}>
+                  <FavoriteBorderIcon style={{ fontSize: 14 }} />
+                  {counts.likes}
+                </span>
+              )}
+              {counts.resonates > 0 && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '12px', color: '#999' }}>
+                  <span style={{ fontSize: '13px', lineHeight: 1 }}>🫶</span>
+                  {counts.resonates}
+                </span>
+              )}
+            </div>
+          );
+        })()}
       </div>
     );
   };
