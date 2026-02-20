@@ -1,9 +1,7 @@
-import { useEffect } from 'react';
-import { auth } from '../firebase';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, addDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { collection, addDoc, doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
 import CountrySelect from '../components/CountrySelect';
 import StateSelect from '../components/StateSelect';
 import formatLocation from '../utils/formatLocation';
@@ -33,15 +31,28 @@ function CreateChapter() {
   const [city, setCity] = useState('');
   const [tags, setTags] = useState('');
   const [privacy, setPrivacy] = useState('private');
+  const [sensitive, setSensitive] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [profileUsername, setProfileUsername] = useState('');
 
   useEffect(() => {
     if (!auth.currentUser) {
       navigate('/login');
+      return;
     }
+    // Fetch profile username
+    const fetchProfile = async () => {
+      try {
+        const profileDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+        if (profileDoc.exists() && profileDoc.data().username) {
+          setProfileUsername(profileDoc.data().username);
+        }
+      } catch (e) { /* ignore */ }
+    };
+    fetchProfile();
   }, [navigate]);
 
-  const displayName = auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'You';
+  const displayName = profileUsername || auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'You';
 
   const handlePublish = async () => {
     if (!title || !story || !country) {
@@ -59,12 +70,13 @@ function CreateChapter() {
         state: state || '',
         city: city || '',
         tags: tags.split(',').map(t => t.trim()).filter(t => t),
-        author: auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Anonymous',
+        author: displayName || auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Anonymous',
         authorId: auth.currentUser?.uid,
         createdAt: new Date(),
         likes: 0,
         comments: [],
-        privacy
+        privacy,
+        sensitive
       });
 
       alert(privacy === 'private' ? 'Chapter saved!' : 'Chapter published!');
@@ -268,6 +280,45 @@ function CreateChapter() {
               {selectedPrivacy?.desc}
             </div>
           </div>
+
+          {/* Sensitive / Raw toggle */}
+          <div style={{ marginBottom: '15px' }}>
+            <button
+              type="button"
+              onClick={() => setSensitive(!sensitive)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 16px',
+                border: sensitive ? '1.5px solid #e65100' : '1px solid #e0e0e0',
+                borderRadius: '8px',
+                background: sensitive ? '#fff3e0' : 'white',
+                cursor: 'pointer',
+                width: '100%',
+                boxSizing: 'border-box',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <div style={{
+                width: '18px', height: '18px', borderRadius: '4px',
+                border: sensitive ? '2px solid #e65100' : '2px solid #ccc',
+                background: sensitive ? '#e65100' : 'white',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0, transition: 'all 0.15s ease',
+              }}>
+                {sensitive && <span style={{ color: 'white', fontSize: '12px', fontWeight: '700', lineHeight: 1 }}>✓</span>}
+              </div>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: '13px', fontWeight: '600', color: sensitive ? '#e65100' : '#555' }}>
+                  Sensitive / Raw Content
+                </div>
+                <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
+                  Blurs this chapter in Explore. Readers tap to reveal.
+                </div>
+              </div>
+            </button>
+          </div>
         </div>
 
         {/* Right: Preview */}
@@ -286,20 +337,36 @@ function CreateChapter() {
             border: '1px solid #e0e0e0'
           }}>
             {/* Privacy badge */}
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '3px 10px',
-              borderRadius: '12px',
-              fontSize: '11px',
-              fontWeight: '500',
-              marginBottom: '12px',
-              background: privacy === 'private' ? '#f5f5f5' : privacy === 'public' ? '#e8f5e9' : privacy === 'anonymous' ? '#fff3e0' : '#e3f2fd',
-              color: privacy === 'private' ? '#666' : privacy === 'public' ? '#2e7d32' : privacy === 'anonymous' ? '#e65100' : '#1565c0'
-            }}>
-              {selectedPrivacy?.icon}
-              {selectedPrivacy?.label}
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '3px 10px',
+                borderRadius: '12px',
+                fontSize: '11px',
+                fontWeight: '500',
+                background: privacy === 'private' ? '#f5f5f5' : privacy === 'public' ? '#e8f5e9' : privacy === 'anonymous' ? '#fff3e0' : '#e3f2fd',
+                color: privacy === 'private' ? '#666' : privacy === 'public' ? '#2e7d32' : privacy === 'anonymous' ? '#e65100' : '#1565c0'
+              }}>
+                {selectedPrivacy?.icon}
+                {selectedPrivacy?.label}
+              </div>
+              {sensitive && (
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '3px 10px',
+                  borderRadius: '12px',
+                  fontSize: '11px',
+                  fontWeight: '500',
+                  background: '#fff3e0',
+                  color: '#e65100',
+                }}>
+                  ⚠️ Sensitive
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '15px' }}>

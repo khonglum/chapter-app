@@ -47,6 +47,19 @@ service cloud.firestore {
       }
     }
 
+    // Users collection — stores profile data (username, birthDate, location)
+    match /users/{userId} {
+      // Anyone can read user profiles (needed to display usernames, age brackets)
+      allow read: if true;
+
+      // Users can only create/update their own profile
+      allow create: if request.auth != null && userId == request.auth.uid;
+      allow update: if request.auth != null && userId == request.auth.uid;
+
+      // Users can delete their own profile
+      allow delete: if request.auth != null && userId == request.auth.uid;
+    }
+
     // Suggested events collection — community event suggestions with voting
     match /suggestedEvents/{eventId} {
       // Anyone can read suggestions

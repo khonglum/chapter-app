@@ -27,6 +27,7 @@ function EditChapterModal({ chapter, onClose, onSaved }) {
   const [city, setCity] = useState(chapter.city || '');
   const [tags, setTags] = useState((chapter.tags || []).join(', '));
   const [privacy, setPrivacy] = useState(chapter.privacy || 'public');
+  const [sensitive, setSensitive] = useState(chapter.sensitive || false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -57,6 +58,7 @@ function EditChapterModal({ chapter, onClose, onSaved }) {
         city: city || '',
         tags: tags.split(',').map(t => t.trim()).filter(t => t),
         privacy,
+        sensitive,
       };
       await updateDoc(chapterRef, updated);
       onSaved({ ...chapter, ...updated });
@@ -243,6 +245,45 @@ function EditChapterModal({ chapter, onClose, onSaved }) {
             <div style={{ fontSize: '11px', color: '#888', marginTop: '6px' }}>
               {selectedPrivacy?.desc}
             </div>
+          </div>
+
+          {/* Sensitive / Raw toggle */}
+          <div style={{ marginTop: '12px' }}>
+            <button
+              type="button"
+              onClick={() => setSensitive(!sensitive)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 16px',
+                border: sensitive ? '1.5px solid #e65100' : '1px solid #e0e0e0',
+                borderRadius: '8px',
+                background: sensitive ? '#fff3e0' : 'white',
+                cursor: 'pointer',
+                width: '100%',
+                boxSizing: 'border-box',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <div style={{
+                width: '18px', height: '18px', borderRadius: '4px',
+                border: sensitive ? '2px solid #e65100' : '2px solid #ccc',
+                background: sensitive ? '#e65100' : 'white',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0, transition: 'all 0.15s ease',
+              }}>
+                {sensitive && <span style={{ color: 'white', fontSize: '12px', fontWeight: '700', lineHeight: 1 }}>✓</span>}
+              </div>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: '12px', fontWeight: '600', color: sensitive ? '#e65100' : '#555' }}>
+                  Sensitive / Raw Content
+                </div>
+                <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
+                  Blurs this chapter in Explore. Readers tap to reveal.
+                </div>
+              </div>
+            </button>
           </div>
         </div>
       </div>

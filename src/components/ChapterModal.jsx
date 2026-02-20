@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { doc, collection, setDoc, deleteDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { doc, collection, setDoc, deleteDoc, getDocs, query, where, orderBy, getDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import CloseIcon from '@mui/icons-material/Close';
 import FavoriteIcon from '@mui/icons-material/Favorite';
@@ -7,6 +7,7 @@ import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import formatLocation from '../utils/formatLocation';
+import getAgeBracket from '../utils/getAgeBracket';
 
 const parseDateValue = (dateStr) => {
   if (!dateStr) return 0;
@@ -44,9 +45,39 @@ function ChapterModal({ chapter: initialChapter, onClose, onReactionChange }) {
   const [resonateLoading, setResonateLoading] = useState(false);
   const [authorChapters, setAuthorChapters] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
+  const [authorBirthYear, setAuthorBirthYear] = useState(null);
+  const [authorUsername, setAuthorUsername] = useState(null);
+  const [sensitiveRevealed, setSensitiveRevealed] = useState(false);
 
   const user = auth.currentUser;
   const isAnonymous = chapter.privacy === 'anonymous';
+  const isSensitive = chapter.sensitive && !sensitiveRevealed;
+
+  // Fetch author birth year for age bracket
+  useEffect(() => {
+    if (isAnonymous || !chapter.authorId) {
+      setAuthorBirthYear(null);
+      setAuthorUsername(null);
+      return;
+    }
+    const fetchAuthorProfile = async () => {
+      try {
+        const profileDoc = await getDoc(doc(db, 'users', chapter.authorId));
+        if (profileDoc.exists()) {
+          const data = profileDoc.data();
+          setAuthorBirthYear(data.birthYear || null);
+          setAuthorUsername(data.username || null);
+        } else {
+          setAuthorBirthYear(null);
+          setAuthorUsername(null);
+        }
+      } catch (err) {
+        setAuthorBirthYear(null);
+        setAuthorUsername(null);
+      }
+    };
+    fetchAuthorProfile();
+  }, [chapter.authorId, isAnonymous]);
 
   // Fetch author's public chapters for before/after navigation
   useEffect(() => {
@@ -167,12 +198,14 @@ function ChapterModal({ chapter: initialChapter, onClose, onReactionChange }) {
   const goToPrev = () => {
     if (currentIndex > 0) {
       setChapter(authorChapters[currentIndex - 1]);
+      setSensitiveRevealed(false);
     }
   };
 
   const goToNext = () => {
     if (currentIndex < authorChapters.length - 1) {
       setChapter(authorChapters[currentIndex + 1]);
+      setSensitiveRevealed(false);
     }
   };
 
@@ -235,14 +268,17 @@ function ChapterModal({ chapter: initialChapter, onClose, onReactionChange }) {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '14px', color: '#fff', fontWeight: '600'
             }}>
-              {isAnonymous ? '?' : (displayAuthor(chapter.author).charAt(0) || '').toUpperCase()}
+              {isAnonymous ? '?' : ((authorUsername || displayAuthor(chapter.author)).charAt(0) || '').toUpperCase()}
             </div>
             <div style={{ textAlign: 'left' }}>
               <div style={{ fontWeight: '600', fontSize: '14px', lineHeight: '1.3', textAlign: 'left' }}>
-                {isAnonymous ? 'Anonymous' : displayAuthor(chapter.author)}
+                {isAnonymous ? 'Anonymous' : (authorUsername || displayAuthor(chapter.author))}
               </div>
               <div style={{ fontSize: '12px', color: '#666', lineHeight: '1.3', textAlign: 'left' }}>
                 {formatDate(chapter.date)} · {formatLocation(chapter.country, chapter.state, chapter.city)}
+                {!isAnonymous && authorBirthYear && getAgeBracket(authorBirthYear, chapter.date) && (
+                  <span style={{ color: '#999' }}> · {getAgeBracket(authorBirthYear, chapter.date)}</span>
+                )}
               </div>
             </div>
           </div>
@@ -259,46 +295,103 @@ function ChapterModal({ chapter: initialChapter, onClose, onReactionChange }) {
           flex: 1,
           textAlign: 'left',
         }}>
-          <h1 style={{
-            fontSize: '1.6em',
-            fontWeight: '700',
-            marginBottom: '20px',
-            lineHeight: '1.3',
-            textAlign: 'left',
-          }}>
-            {chapter.title}
-          </h1>
-
-          <div style={{
-            fontFamily: 'Georgia, serif',
-            fontSize: '1.05em',
-            lineHeight: '1.8',
-            color: '#333',
-            whiteSpace: 'pre-wrap',
-            textAlign: 'left',
-          }}>
-            {chapter.story}
-          </div>
-
-          {chapter.tags && chapter.tags.length > 0 && (
+          {isSensitive ? (
+            /* Sensitive content warning gate */
             <div style={{
-              marginTop: '24px',
               display: 'flex',
-              flexWrap: 'wrap',
-              gap: '8px'
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '40px 20px',
+              textAlign: 'center',
             }}>
-              {chapter.tags.map((tag, i) => (
-                <span key={i} style={{
-                  background: '#f0f0f0',
-                  padding: '4px 12px',
-                  borderRadius: '14px',
-                  fontSize: '12px',
-                  color: '#555'
-                }}>
-                  {tag}
-                </span>
-              ))}
+              <span style={{ fontSize: '40px', marginBottom: '16px' }}>⚠️</span>
+              <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#333', marginBottom: '8px' }}>
+                Sensitive Content
+              </h2>
+              <p style={{ fontSize: '14px', color: '#888', marginBottom: '6px', maxWidth: '300px', lineHeight: '1.5' }}>
+                The author has flagged this chapter as sensitive or raw.
+              </p>
+              <p style={{ fontSize: '13px', color: '#aaa', marginBottom: '24px' }}>
+                It may contain personal or emotional content.
+              </p>
+              <button
+                onClick={() => setSensitiveRevealed(true)}
+                style={{
+                  padding: '10px 28px',
+                  background: '#333',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                }}
+              >
+                I understand, show me
+              </button>
             </div>
+          ) : (
+            /* Normal content */
+            <>
+              {chapter.sensitive && (
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '3px 10px',
+                  borderRadius: '12px',
+                  fontSize: '11px',
+                  fontWeight: '500',
+                  background: '#fff3e0',
+                  color: '#e65100',
+                  marginBottom: '12px',
+                }}>
+                  ⚠️ Sensitive
+                </div>
+              )}
+              <h1 style={{
+                fontSize: '1.6em',
+                fontWeight: '700',
+                marginBottom: '20px',
+                lineHeight: '1.3',
+                textAlign: 'left',
+              }}>
+                {chapter.title}
+              </h1>
+
+              <div style={{
+                fontFamily: 'Georgia, serif',
+                fontSize: '1.05em',
+                lineHeight: '1.8',
+                color: '#333',
+                whiteSpace: 'pre-wrap',
+                textAlign: 'left',
+              }}>
+                {chapter.story}
+              </div>
+
+              {chapter.tags && chapter.tags.length > 0 && (
+                <div style={{
+                  marginTop: '24px',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '8px'
+                }}>
+                  {chapter.tags.map((tag, i) => (
+                    <span key={i} style={{
+                      background: '#f0f0f0',
+                      padding: '4px 12px',
+                      borderRadius: '14px',
+                      fontSize: '12px',
+                      color: '#555'
+                    }}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
 

@@ -1,23 +1,31 @@
 import { useState, useEffect } from 'react';
 import { signOut } from 'firebase/auth';
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 
 import ChapterModal from '../components/ChapterModal';
+import EditProfileModal from '../components/EditProfileModal';
+import formatLocation from '../utils/formatLocation';
 import SettingsIcon from '@mui/icons-material/Settings';
+import EditIcon from '@mui/icons-material/Edit';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import CakeIcon from '@mui/icons-material/Cake';
 
 function Profile() {
   const [user, setUser] = useState(auth.currentUser);
   const [chapters, setChapters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedChapter, setSelectedChapter] = useState(null);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [profile, setProfile] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
         fetchChapters(currentUser.uid);
+        fetchProfile(currentUser.uid);
       } else {
         setLoading(false);
       }
@@ -25,10 +33,22 @@ function Profile() {
 
     if (auth.currentUser) {
       fetchChapters(auth.currentUser.uid);
+      fetchProfile(auth.currentUser.uid);
     }
 
     return () => unsubscribe();
   }, []);
+
+  const fetchProfile = async (uid) => {
+    try {
+      const profileDoc = await getDoc(doc(db, 'users', uid));
+      if (profileDoc.exists()) {
+        setProfile(profileDoc.data());
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  };
 
   const fetchChapters = async (uid) => {
     try {
@@ -49,7 +69,13 @@ function Profile() {
     setLoading(false);
   };
 
-  const displayName = user?.displayName || user?.email?.split('@')[0] || 'User';
+  const handleProfileSaved = (profileData) => {
+    setProfile(prev => ({ ...prev, ...profileData }));
+  };
+
+  // Display name priority: profile username > displayName > email prefix
+  const displayName = profile?.username || user?.displayName || user?.email?.split('@')[0] || 'User';
+  const profileLocation = formatLocation(profile?.country, profile?.state, profile?.city);
 
   return (
     <div style={{ minHeight: '100vh', background: '#fafafa' }}>
@@ -97,10 +123,28 @@ function Profile() {
           {displayName.charAt(0).toUpperCase()}
         </div>
 
-        <h2 style={{ fontSize: '1.3em', marginBottom: '5px' }}>{displayName}</h2>
-        <p style={{ color: '#666', fontSize: '0.85em', marginBottom: '20px' }}>
+        <h2 style={{ fontSize: '1.3em', marginBottom: '4px' }}>{displayName}</h2>
+
+        {/* Email (subtle) */}
+        <p style={{ color: '#888', fontSize: '0.8em', marginBottom: '10px' }}>
           {user?.email || ''}
         </p>
+
+        {/* Profile info: location + birth year */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', marginBottom: '16px' }}>
+          {profileLocation && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: '#666' }}>
+              <LocationOnIcon style={{ fontSize: 14, color: '#888' }} />
+              {profileLocation}
+            </div>
+          )}
+          {profile?.birthYear && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: '#666' }}>
+              <CakeIcon style={{ fontSize: 14, color: '#888' }} />
+              Born {profile.birthYear}
+            </div>
+          )}
+        </div>
 
         {/* Stats */}
         <div style={{
@@ -123,16 +167,23 @@ function Profile() {
           </div>
         </div>
 
-        <button style={{
-          marginTop: '20px',
-          padding: '10px 30px',
-          background: 'white',
-          border: '1px solid #e0e0e0',
-          borderRadius: '6px',
-          fontSize: '0.9em',
-          fontWeight: '600',
-          cursor: 'pointer'
-        }}>
+        <button
+          onClick={() => setShowEditProfile(true)}
+          style={{
+            marginTop: '20px',
+            padding: '10px 30px',
+            background: 'white',
+            border: '1px solid #e0e0e0',
+            borderRadius: '6px',
+            fontSize: '0.9em',
+            fontWeight: '600',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}
+        >
+          <EditIcon style={{ fontSize: 16 }} />
           Edit Profile
         </button>
       </div>
@@ -206,6 +257,15 @@ function Profile() {
         <ChapterModal
           chapter={selectedChapter}
           onClose={() => setSelectedChapter(null)}
+        />
+      )}
+
+      {/* Edit Profile Modal */}
+      {showEditProfile && (
+        <EditProfileModal
+          currentProfile={profile}
+          onClose={() => setShowEditProfile(false)}
+          onSaved={handleProfileSaved}
         />
       )}
 

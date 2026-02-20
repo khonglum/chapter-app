@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, getDocs, query, orderBy, where, doc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, where, doc, deleteDoc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 
@@ -57,6 +57,7 @@ function MyTimeline() {
   const [editingChapter, setEditingChapter] = useState(null);
   const [deletingChapter, setDeletingChapter] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [profileUsername, setProfileUsername] = useState('');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -66,14 +67,25 @@ function MyTimeline() {
         return;
       }
       fetchChapters(currentUser.uid);
+      fetchProfileUsername(currentUser.uid);
     });
 
     if (auth.currentUser) {
       fetchChapters(auth.currentUser.uid);
+      fetchProfileUsername(auth.currentUser.uid);
     }
 
     return () => unsubscribe();
   }, []);
+
+  const fetchProfileUsername = async (uid) => {
+    try {
+      const profileDoc = await getDoc(doc(db, 'users', uid));
+      if (profileDoc.exists() && profileDoc.data().username) {
+        setProfileUsername(profileDoc.data().username);
+      }
+    } catch (e) { /* ignore */ }
+  };
 
   const fetchChapters = async (uid) => {
     try {
@@ -174,7 +186,7 @@ function MyTimeline() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
             {chapters.map((chapter) => {
               const badge = privacyBadge(chapter.privacy);
-              const authorName = displayAuthor(chapter.author);
+              const authorName = profileUsername || displayAuthor(chapter.author);
               return (
                 <div
                   key={chapter.id}

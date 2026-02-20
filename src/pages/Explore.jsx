@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import ChapterModal from '../components/ChapterModal';
 import CountrySelect from '../components/CountrySelect';
 import SuggestEventPopover from '../components/SuggestEventPopover';
 import formatLocation from '../utils/formatLocation';
+import getAgeBracket from '../utils/getAgeBracket';
 import worldEvents from '../data/worldEvents';
 import countryEvents from '../data/countryEvents';
 import EventPill from '../components/EventPill';
@@ -78,6 +79,7 @@ function Explore() {
   const [expandedDecades, setExpandedDecades] = useState({});
   const [openSuggest, setOpenSuggest] = useState(null); // decade key or null
   const [reactionCounts, setReactionCounts] = useState({}); // { chapterId: { likes: N, resonates: N } }
+  const [authorProfiles, setAuthorProfiles] = useState({}); // { authorId: { birthYear, username, ... } }
   const sectionRefs = useRef({});
 
   const CARDS_PER_PAGE = 4;
@@ -119,6 +121,21 @@ function Explore() {
           }
         }));
         setReactionCounts(counts);
+
+        // Fetch author profiles (for birth year / age bracket)
+        const uniqueAuthorIds = [...new Set(visible.map(ch => ch.authorId).filter(Boolean))];
+        const profiles = {};
+        await Promise.all(uniqueAuthorIds.map(async (authorId) => {
+          try {
+            const profileDoc = await getDoc(doc(db, 'users', authorId));
+            if (profileDoc.exists()) {
+              profiles[authorId] = profileDoc.data();
+            }
+          } catch (e) {
+            // ignore — author may not have a profile yet
+          }
+        }));
+        setAuthorProfiles(profiles);
       } catch (error) {
         console.error('Error fetching chapters:', error);
       }
@@ -193,7 +210,11 @@ function Explore() {
 
   const ChapterCard = ({ chapter }) => {
     const isAnonymous = chapter.privacy === 'anonymous';
-    const authorName = isAnonymous ? 'Anonymous' : displayAuthor(chapter.author);
+    const authorProfile = !isAnonymous && chapter.authorId ? authorProfiles[chapter.authorId] : null;
+    const authorName = isAnonymous ? 'Anonymous' : (authorProfile?.username || displayAuthor(chapter.author));
+    const ageBracket = authorProfile?.birthYear ? getAgeBracket(authorProfile.birthYear, chapter.date) : null;
+    const isSensitive = chapter.sensitive;
+
     return (
       <div
         onClick={() => setSelectedChapter(chapter)}
@@ -201,14 +222,17 @@ function Explore() {
           background: '#fff',
           borderRadius: '10px',
           padding: '18px',
-          border: '1px solid #e8e8e8',
+          border: isSensitive ? '1px solid #ffe0b2' : '1px solid #e8e8e8',
           cursor: 'pointer',
           transition: 'box-shadow 0.2s',
           textAlign: 'left',
+          position: 'relative',
+          overflow: 'hidden',
         }}
         onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.08)'}
         onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
       >
+        {/* Author row — always visible */}
         <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '12px' }}>
           <div style={{
             width: '28px', height: '28px', flexShrink: 0,
@@ -226,30 +250,60 @@ function Explore() {
             </div>
             <div style={{ fontSize: '12px', color: '#888', lineHeight: '1.4' }}>
               {formatDate(chapter.date)} · {formatLocation(chapter.country, chapter.state, chapter.city)}
+              {ageBracket && (
+                <span style={{ color: '#aaa' }}> · {ageBracket}</span>
+              )}
             </div>
           </div>
         </div>
-        <div style={{ fontWeight: '700', fontSize: '15px', marginBottom: '8px', color: '#111', lineHeight: '1.4', textAlign: 'left' }}>
-          {chapter.title}
-        </div>
+
+        {/* Content area — blurred if sensitive */}
         <div style={{
-          fontSize: '14px', color: '#555',
-          fontFamily: 'Georgia, serif', lineHeight: '1.6',
-          overflow: 'hidden',
-          display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical'
+          filter: isSensitive ? 'blur(8px)' : 'none',
+          userSelect: isSensitive ? 'none' : 'auto',
+          transition: 'filter 0.2s',
         }}>
-          {chapter.story}
+          <div style={{ fontWeight: '700', fontSize: '15px', marginBottom: '8px', color: '#111', lineHeight: '1.4', textAlign: 'left' }}>
+            {chapter.title}
+          </div>
+          <div style={{
+            fontSize: '14px', color: '#555',
+            fontFamily: 'Georgia, serif', lineHeight: '1.6',
+            overflow: 'hidden',
+            display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical'
+          }}>
+            {chapter.story}
+          </div>
+          {chapter.tags && chapter.tags.length > 0 && (
+            <div style={{ marginTop: '12px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {chapter.tags.slice(0, 4).map((tag, i) => (
+                <span key={i} style={{
+                  background: '#f5f5f5', padding: '3px 10px',
+                  borderRadius: '12px', fontSize: '11px', color: '#666'
+                }}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
-        {chapter.tags && chapter.tags.length > 0 && (
-          <div style={{ marginTop: '12px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            {chapter.tags.slice(0, 4).map((tag, i) => (
-              <span key={i} style={{
-                background: '#f5f5f5', padding: '3px 10px',
-                borderRadius: '12px', fontSize: '11px', color: '#666'
-              }}>
-                {tag}
-              </span>
-            ))}
+
+        {/* Sensitive overlay */}
+        {isSensitive && (
+          <div style={{
+            position: 'absolute',
+            left: 0, right: 0, bottom: 0,
+            top: '55px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '4px',
+            background: 'rgba(255,255,255,0.5)',
+          }}>
+            <span style={{ fontSize: '20px' }}>⚠️</span>
+            <span style={{ fontSize: '12px', fontWeight: '600', color: '#e65100' }}>Sensitive Content</span>
+            <span style={{ fontSize: '11px', color: '#999' }}>Tap to read</span>
           </div>
         )}
 
