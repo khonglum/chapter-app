@@ -8,7 +8,7 @@ import formatLocation from '../utils/formatLocation';
 import worldEvents from '../data/worldEvents';
 import countryEvents from '../data/countryEvents';
 import EventPill from '../components/EventPill';
-import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import FavoriteIcon from '@mui/icons-material/Favorite';
 
 // Base decades: 1970 – 2030 always shown
 const BASE_MIN_DECADE = 1970;
@@ -261,7 +261,7 @@ function Explore() {
             <div style={{ marginTop: '12px', display: 'flex', gap: '12px', alignItems: 'center' }}>
               {counts.likes > 0 && (
                 <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '12px', color: '#999' }}>
-                  <FavoriteBorderIcon style={{ fontSize: 14 }} />
+                  <FavoriteIcon style={{ fontSize: 14, color: '#e53935' }} />
                   {counts.likes}
                 </span>
               )}
