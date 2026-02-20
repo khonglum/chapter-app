@@ -221,11 +221,11 @@ function ChapterModal({ chapter: initialChapter, onClose }) {
             }}>
               {isAnonymous ? '?' : (displayAuthor(chapter.author).charAt(0) || '').toUpperCase()}
             </div>
-            <div>
-              <div style={{ fontWeight: '600', fontSize: '14px', lineHeight: '1.3' }}>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontWeight: '600', fontSize: '14px', lineHeight: '1.3', textAlign: 'left' }}>
                 {isAnonymous ? 'Anonymous' : displayAuthor(chapter.author)}
               </div>
-              <div style={{ fontSize: '12px', color: '#666', lineHeight: '1.3' }}>
+              <div style={{ fontSize: '12px', color: '#666', lineHeight: '1.3', textAlign: 'left' }}>
                 {formatDate(chapter.date)} · {formatLocation(chapter.country, chapter.state, chapter.city)}
               </div>
             </div>
@@ -240,13 +240,15 @@ function ChapterModal({ chapter: initialChapter, onClose }) {
         <div style={{
           padding: '24px 20px',
           overflowY: 'auto',
-          flex: 1
+          flex: 1,
+          textAlign: 'left',
         }}>
           <h1 style={{
             fontSize: '1.6em',
             fontWeight: '700',
             marginBottom: '20px',
-            lineHeight: '1.3'
+            lineHeight: '1.3',
+            textAlign: 'left',
           }}>
             {chapter.title}
           </h1>
@@ -256,7 +258,8 @@ function ChapterModal({ chapter: initialChapter, onClose }) {
             fontSize: '1.05em',
             lineHeight: '1.8',
             color: '#333',
-            whiteSpace: 'pre-wrap'
+            whiteSpace: 'pre-wrap',
+            textAlign: 'left',
           }}>
             {chapter.story}
           </div>
