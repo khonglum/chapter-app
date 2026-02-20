@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, getDocs, query, orderBy, where } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, where, doc, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 
@@ -9,6 +9,7 @@ import EditChapterModal from '../components/EditChapterModal';
 import formatLocation from '../utils/formatLocation';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import LockIcon from '@mui/icons-material/Lock';
 import PublicIcon from '@mui/icons-material/Public';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
@@ -54,6 +55,8 @@ function MyTimeline() {
   const [user, setUser] = useState(auth.currentUser);
   const [selectedChapter, setSelectedChapter] = useState(null);
   const [editingChapter, setEditingChapter] = useState(null);
+  const [deletingChapter, setDeletingChapter] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -98,6 +101,20 @@ function MyTimeline() {
       prev.map(ch => ch.id === updatedChapter.id ? updatedChapter : ch)
         .sort((a, b) => parseDateValue(b.date) - parseDateValue(a.date))
     );
+  };
+
+  const handleDelete = async () => {
+    if (!deletingChapter) return;
+    setDeleting(true);
+    try {
+      await deleteDoc(doc(db, 'chapters', deletingChapter.id));
+      setChapters(prev => prev.filter(ch => ch.id !== deletingChapter.id));
+      setDeletingChapter(null);
+    } catch (error) {
+      console.error('Error deleting chapter:', error);
+      alert('Failed to delete chapter. Please try again.');
+    }
+    setDeleting(false);
   };
 
   return (
@@ -179,19 +196,35 @@ function MyTimeline() {
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                   <div style={{ fontWeight: '600', fontSize: '14px', flex: 1 }}>{chapter.title}</div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setEditingChapter(chapter); }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '4px',
-                      padding: '4px 10px', background: 'none',
-                      border: '1px solid #e0e0e0', borderRadius: '14px',
-                      fontSize: '11px', color: '#666', cursor: 'pointer',
-                      flexShrink: 0, marginLeft: '10px'
-                    }}
-                  >
-                    <EditIcon style={{ fontSize: 13 }} />
-                    Edit
-                  </button>
+                  <div style={{ display: 'flex', gap: '6px', flexShrink: 0, marginLeft: '10px' }}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEditingChapter(chapter); }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '4px',
+                        padding: '4px 10px', background: 'none',
+                        border: '1px solid #e0e0e0', borderRadius: '14px',
+                        fontSize: '11px', color: '#666', cursor: 'pointer',
+                      }}
+                    >
+                      <EditIcon style={{ fontSize: 13 }} />
+                      Edit
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setDeletingChapter(chapter); }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '4px',
+                        padding: '4px 10px', background: 'none',
+                        border: '1px solid #e0e0e0', borderRadius: '14px',
+                        fontSize: '11px', color: '#999', cursor: 'pointer',
+                        transition: 'all 0.15s',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = '#d32f2f'; e.currentTarget.style.color = '#d32f2f'; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = '#e0e0e0'; e.currentTarget.style.color = '#999'; }}
+                    >
+                      <DeleteOutlineIcon style={{ fontSize: 13 }} />
+                      Delete
+                    </button>
+                  </div>
                 </div>
                 <div style={{ fontSize: '13px', color: '#555', fontFamily: 'Georgia, serif', lineHeight: '1.5', marginBottom: '10px' }}>
                   {chapter.story.substring(0, 150)}...
@@ -270,6 +303,75 @@ function MyTimeline() {
           onClose={() => setEditingChapter(null)}
           onSaved={handleChapterSaved}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingChapter && (
+        <div
+          onClick={() => !deleting && setDeletingChapter(null)}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 1000, padding: '20px',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: '#fff',
+              borderRadius: '12px',
+              padding: '28px',
+              maxWidth: '400px',
+              width: '100%',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{
+              width: '48px', height: '48px', borderRadius: '50%',
+              background: '#ffeaea', margin: '0 auto 16px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <DeleteOutlineIcon style={{ fontSize: 24, color: '#d32f2f' }} />
+            </div>
+            <div style={{ fontSize: '18px', fontWeight: '700', color: '#111', marginBottom: '8px' }}>
+              Delete this chapter?
+            </div>
+            <div style={{ fontSize: '14px', color: '#666', marginBottom: '6px', lineHeight: '1.5' }}>
+              "{deletingChapter.title}"
+            </div>
+            <div style={{ fontSize: '13px', color: '#999', marginBottom: '24px' }}>
+              This action cannot be undone.
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setDeletingChapter(null)}
+                disabled={deleting}
+                style={{
+                  flex: 1, padding: '10px',
+                  background: '#f5f5f5', border: 'none', borderRadius: '8px',
+                  fontSize: '14px', fontWeight: '600', color: '#555',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                style={{
+                  flex: 1, padding: '10px',
+                  background: '#d32f2f', border: 'none', borderRadius: '8px',
+                  fontSize: '14px', fontWeight: '600', color: '#fff',
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  opacity: deleting ? 0.7 : 1,
+                }}
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>
