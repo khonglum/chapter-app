@@ -39,6 +39,9 @@ function ChapterModal({ chapter: initialChapter, onClose }) {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [likeLoading, setLikeLoading] = useState(false);
+  const [resonated, setResonated] = useState(false);
+  const [resonateCount, setResonateCount] = useState(0);
+  const [resonateLoading, setResonateLoading] = useState(false);
   const [authorChapters, setAuthorChapters] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
 
@@ -80,10 +83,12 @@ function ChapterModal({ chapter: initialChapter, onClose }) {
     }
   }, [chapter.id, authorChapters]);
 
-  // Check like status when chapter changes
+  // Check like + resonate status when chapter changes
   useEffect(() => {
     setLikeCount(chapter.likes || 0);
     setLiked(false);
+    setResonateCount(0);
+    setResonated(false);
     if (!user) return;
     const checkLike = async () => {
       try {
@@ -92,7 +97,15 @@ function ChapterModal({ chapter: initialChapter, onClose }) {
         setLikeCount(likesSnap.size);
       } catch (err) {}
     };
+    const checkResonate = async () => {
+      try {
+        const resonatesSnap = await getDocs(collection(db, 'chapters', chapter.id, 'resonates'));
+        setResonated(resonatesSnap.docs.some(d => d.id === user.uid));
+        setResonateCount(resonatesSnap.size);
+      } catch (err) {}
+    };
     checkLike();
+    checkResonate();
   }, [chapter.id, user]);
 
   const handleLike = async () => {
@@ -113,6 +126,26 @@ function ChapterModal({ chapter: initialChapter, onClose }) {
       console.error('Error toggling like:', err);
     }
     setLikeLoading(false);
+  };
+
+  const handleResonate = async () => {
+    if (!user || resonateLoading) return;
+    setResonateLoading(true);
+    const resonateRef = doc(db, 'chapters', chapter.id, 'resonates', user.uid);
+    try {
+      if (resonated) {
+        await deleteDoc(resonateRef);
+        setResonated(false);
+        setResonateCount(prev => Math.max(0, prev - 1));
+      } else {
+        await setDoc(resonateRef, { resonatedAt: new Date() });
+        setResonated(true);
+        setResonateCount(prev => prev + 1);
+      }
+    } catch (err) {
+      console.error('Error toggling resonate:', err);
+    }
+    setResonateLoading(false);
   };
 
   const goToPrev = () => {
@@ -259,29 +292,47 @@ function ChapterModal({ chapter: initialChapter, onClose }) {
           justifyContent: 'space-between',
           flexShrink: 0
         }}>
-          {/* Like button */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {/* Like + Resonates buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <button
               onClick={handleLike}
               disabled={!user || likeLoading}
               style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
+                display: 'flex', alignItems: 'center', gap: '5px',
                 background: 'none', border: 'none',
                 cursor: user ? 'pointer' : 'default',
                 padding: '8px 12px', borderRadius: '20px',
-                color: liked ? '#e53935' : '#666'
+                color: liked ? '#e53935' : '#666',
+                transition: 'color 0.15s',
               }}
             >
               {liked
                 ? <FavoriteIcon style={{ fontSize: 20, color: '#e53935' }} />
                 : <FavoriteBorderIcon style={{ fontSize: 20 }} />
               }
-              <span style={{ fontSize: '14px', fontWeight: '500' }}>
+              <span style={{ fontSize: '13px', fontWeight: '500' }}>
                 {likeCount > 0 ? likeCount : 'Like'}
               </span>
             </button>
+            <button
+              onClick={handleResonate}
+              disabled={!user || resonateLoading}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '5px',
+                background: resonated ? '#f0f7f0' : 'none',
+                border: resonated ? '1px solid #c8e6c9' : '1px solid transparent',
+                cursor: user ? 'pointer' : 'default',
+                padding: '7px 12px', borderRadius: '20px',
+                color: resonated ? '#1a8917' : '#666',
+                transition: 'all 0.15s',
+                fontSize: '13px', fontWeight: '500',
+              }}
+            >
+              <span style={{ fontSize: '16px', lineHeight: 1 }}>🫶</span>
+              <span>{resonateCount > 0 ? `${resonateCount} Resonates` : 'Resonates'}</span>
+            </button>
             {!user && (
-              <span style={{ fontSize: '12px', color: '#999' }}>Log in to like</span>
+              <span style={{ fontSize: '12px', color: '#999' }}>Sign in to react</span>
             )}
           </div>
 
