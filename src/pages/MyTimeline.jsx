@@ -117,40 +117,49 @@ function MyTimeline() {
     setDeleting(false);
   };
 
+  // Strip email — show username only
+  const displayAuthor = (author) => {
+    if (!author) return 'Anonymous';
+    if (author.includes('@')) return author.split('@')[0];
+    return author;
+  };
+
   return (
-    <div style={{ minHeight: '100vh' }}>
+    <div style={{ background: '#fafafa', minHeight: '100vh' }}>
       {/* Header */}
       <div style={{
-        padding: '20px',
+        padding: '16px 20px',
         background: 'white',
-        borderBottom: '1px solid #e0e0e0',
+        borderBottom: '1px solid #e8e8e8',
         position: 'sticky',
         top: 0,
         zIndex: 10,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
       }}>
-        <h1 style={{ fontSize: '1.5em', margin: 0 }}>My Timeline</h1>
-        <button
-          onClick={() => navigate('/create')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            padding: '8px 16px',
-            background: '#1a8917',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            fontSize: '13px',
-            fontWeight: '600',
-            cursor: 'pointer'
-          }}
-        >
-          <AddIcon style={{ fontSize: 18 }} />
-          New
-        </button>
+        <div style={{
+          maxWidth: '900px', margin: '0 auto',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}>
+          <h1 style={{ fontSize: '22px', fontWeight: '800', margin: 0, color: '#111' }}>My Timeline</h1>
+          <button
+            onClick={() => navigate('/create')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '8px 16px',
+              background: '#1a8917',
+              color: 'white',
+              border: 'none',
+              borderRadius: '20px',
+              fontSize: '13px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            <AddIcon style={{ fontSize: 18 }} />
+            New
+          </button>
+        </div>
       </div>
 
       {loading && (
@@ -161,89 +170,136 @@ function MyTimeline() {
 
       {/* Show chapters if they exist */}
       {!loading && chapters.length > 0 && (
-        <div style={{ padding: '20px' }}>
-          {chapters.map((chapter) => {
-            const badge = privacyBadge(chapter.privacy);
-            return (
-              <div
-                key={chapter.id}
-                onClick={() => setSelectedChapter(chapter)}
-                style={{
-                  background: '#fafafa',
-                  borderRadius: '8px',
-                  padding: '15px',
-                  marginBottom: '15px',
-                  borderLeft: '3px solid #191919',
-                  cursor: 'pointer'
-                }}
-              >
-                {/* Privacy badge */}
-                <div style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '3px',
-                  padding: '2px 8px',
-                  borderRadius: '10px',
-                  fontSize: '11px',
-                  fontWeight: '500',
-                  marginBottom: '8px',
-                  background: badge.bg,
-                  color: badge.color
-                }}>
-                  {badge.icon}
-                  {badge.label}
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                  <div style={{ fontWeight: '600', fontSize: '14px', flex: 1 }}>{chapter.title}</div>
-                  <div style={{ display: 'flex', gap: '6px', flexShrink: 0, marginLeft: '10px' }}>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setEditingChapter(chapter); }}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: '4px',
-                        padding: '4px 10px', background: 'none',
-                        border: '1px solid #e0e0e0', borderRadius: '14px',
-                        fontSize: '11px', color: '#666', cursor: 'pointer',
-                      }}
-                    >
-                      <EditIcon style={{ fontSize: 13 }} />
-                      Edit
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setDeletingChapter(chapter); }}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: '4px',
-                        padding: '4px 10px', background: 'none',
-                        border: '1px solid #e0e0e0', borderRadius: '14px',
-                        fontSize: '11px', color: '#999', cursor: 'pointer',
-                        transition: 'all 0.15s',
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = '#d32f2f'; e.currentTarget.style.color = '#d32f2f'; }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = '#e0e0e0'; e.currentTarget.style.color = '#999'; }}
-                    >
-                      <DeleteOutlineIcon style={{ fontSize: 13 }} />
-                      Delete
-                    </button>
+        <div style={{ maxWidth: '900px', margin: '0 auto', padding: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+            {chapters.map((chapter) => {
+              const badge = privacyBadge(chapter.privacy);
+              const authorName = displayAuthor(chapter.author);
+              return (
+                <div
+                  key={chapter.id}
+                  onClick={() => setSelectedChapter(chapter)}
+                  style={{
+                    background: '#fff',
+                    borderRadius: '10px',
+                    padding: '18px',
+                    border: '1px solid #e8e8e8',
+                    cursor: 'pointer',
+                    transition: 'box-shadow 0.2s',
+                    textAlign: 'left',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.08)'}
+                  onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+                >
+                  {/* Top row: privacy badge + action buttons */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                      padding: '2px 8px',
+                      borderRadius: '10px',
+                      fontSize: '11px',
+                      fontWeight: '500',
+                      background: badge.bg,
+                      color: badge.color
+                    }}>
+                      {badge.icon}
+                      {badge.label}
+                    </div>
+                    <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setEditingChapter(chapter); }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '3px',
+                          padding: '3px 8px', background: 'none',
+                          border: '1px solid #e0e0e0', borderRadius: '12px',
+                          fontSize: '11px', color: '#666', cursor: 'pointer',
+                        }}
+                      >
+                        <EditIcon style={{ fontSize: 12 }} />
+                        Edit
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setDeletingChapter(chapter); }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '3px',
+                          padding: '3px 8px', background: 'none',
+                          border: '1px solid #e0e0e0', borderRadius: '12px',
+                          fontSize: '11px', color: '#999', cursor: 'pointer',
+                          transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#d32f2f'; e.currentTarget.style.color = '#d32f2f'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#e0e0e0'; e.currentTarget.style.color = '#999'; }}
+                      >
+                        <DeleteOutlineIcon style={{ fontSize: 12 }} />
+                      </button>
+                    </div>
                   </div>
+
+                  {/* Author row: avatar + name + date — same as Explore */}
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '12px' }}>
+                    <div style={{
+                      width: '28px', height: '28px', flexShrink: 0,
+                      background: '#1a8917',
+                      borderRadius: '50%',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '12px', color: '#fff', fontWeight: '600',
+                      marginTop: '1px',
+                    }}>
+                      {(authorName.charAt(0) || '').toUpperCase()}
+                    </div>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontWeight: '600', fontSize: '13px', color: '#111', lineHeight: '1.4' }}>
+                        {authorName}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#888', lineHeight: '1.4' }}>
+                        {formatDate(chapter.date)} · {formatLocation(chapter.country, chapter.state, chapter.city)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Title */}
+                  <div style={{ fontWeight: '700', fontSize: '15px', marginBottom: '8px', color: '#111', lineHeight: '1.4', textAlign: 'left' }}>
+                    {chapter.title}
+                  </div>
+
+                  {/* Story preview */}
+                  <div style={{
+                    fontSize: '14px', color: '#555',
+                    fontFamily: 'Georgia, serif', lineHeight: '1.6',
+                    overflow: 'hidden',
+                    display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical',
+                  }}>
+                    {chapter.story}
+                  </div>
+
+                  {/* Tags */}
+                  {chapter.tags && chapter.tags.length > 0 && (
+                    <div style={{ marginTop: '12px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {chapter.tags.slice(0, 4).map((tag, i) => (
+                        <span key={i} style={{
+                          background: '#f5f5f5', padding: '3px 10px',
+                          borderRadius: '12px', fontSize: '11px', color: '#666'
+                        }}>
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div style={{ fontSize: '13px', color: '#555', fontFamily: 'Georgia, serif', lineHeight: '1.5', marginBottom: '10px' }}>
-                  {chapter.story.substring(0, 150)}...
-                </div>
-                <div style={{ fontSize: '12px', color: '#666' }}>
-                  {formatDate(chapter.date)} · {formatLocation(chapter.country, chapter.state, chapter.city)}
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       )}
 
       {/* Empty State */}
       {!loading && chapters.length === 0 && (
         <div style={{
-          padding: '40px 20px',
+          padding: '60px 20px',
           textAlign: 'center',
-          maxWidth: '500px',
+          maxWidth: '900px',
           margin: '0 auto'
         }}>
           <div style={{
